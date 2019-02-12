@@ -13,7 +13,7 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 import sys
 # import RPi.GPIO as GPIO
 
-from CryptoParking import CryptoParking
+from crypto_parking import CryptoParking
 
 def main():
 	print("Crypto Parking Lot")

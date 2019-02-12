@@ -8,6 +8,6 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 '''
 ################################################################################
 
-FREE_PARKING_LIMIT = 3	# seconds
-PAYMENT_LIMIT = 10			# seconds
-PARKING_RATE = 1				# $ / second
+FREE_PARKING_LIMIT = 5		# seconds
+PAYMENT_LIMIT = 15				# seconds
+PARKING_RATE = 0.001			# btc / second
