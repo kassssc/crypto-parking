@@ -4,7 +4,7 @@ Crypto Parking: Automated bitcoin parking lot
 File name: main.py
 Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
-		   John So,
+		   John So, jyso@ucsd.edu
 '''
 ################################################################################
 
@@ -40,4 +40,3 @@ def main():
 # PROGRAM ENTRY POINT
 #-------------------------------------------------------------------------------
 if __name__ == '__main__': main()
-
