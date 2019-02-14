@@ -13,7 +13,7 @@ from const import *
 from blocker import Blocker
 from payments import Payments
 
-class CryptoParking():
+class CryptoParking(object):
 	'''
 	'''
 
@@ -80,9 +80,9 @@ class CryptoParking():
 		self.parking_end_time = time.time()
 		total_parked_time = self.parking_end_time - self.parking_start_time
 		payment_due = total_parked_time * PARKING_RATE
-		print("You parked for %d seconds" % total_parked_time)
-		print("Payment due: %.8f btc" % payment_due)
-		print("Please pay within %d seconds" % PAYMENT_LIMIT)
+		print(f"You parked for {total_parked_time:.2f} seconds")
+		print(f"Payment due: {payment_due:.5f} btc")
+		print(f"Please pay within {PAYMENT_LIMIT} seconds")
 
 		self.payment_timer = threading.Timer(
 			PAYMENT_LIMIT,
@@ -100,7 +100,7 @@ class CryptoParking():
 
 	def await_payment_to_empty(self):
 		''' Detect when user has successfully paid the amout due '''
-		print("Payment received, you have %d seconds to leave" % FREE_PARKING_LIMIT)
+		print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 		self.payment_timer.cancel()
 
 		self.state = State.BLOCKER_MOVING
@@ -115,7 +115,6 @@ class CryptoParking():
 	# Interrupt Handlers
 	#---------------------------------------------------------------------------
 	def proximity_interrupt_low(self):
-
 		if self.state == State.FREE_PARKING:
 			self.free_parking_to_empty()
 
@@ -124,7 +123,6 @@ class CryptoParking():
 			self.parked_to_empty()
 
 	def proximity_interrupt_high(self):
-
 		if self.state == State.EMPTY:
 			self.empty_to_free_parking()
 
@@ -133,7 +131,6 @@ class CryptoParking():
 			self.parked_to_await_payment()
 
 	def payment_received_interrupt(self):
-
 		if self.state == State.AWAIT_PAYMENT:
 			self.await_payment_to_empty()
 
