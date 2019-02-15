@@ -19,6 +19,7 @@ def main():
 	print("Crypto Parking Lot")
 
 	app = CryptoParking()
+	# app.start()
 
 	while True:
 		cmd = input("\nEnter an action:")

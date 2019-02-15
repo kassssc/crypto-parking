@@ -1,6 +1,10 @@
 ################################################################################
 '''
-
+Crypto Parking: Automated bitcoin parking lot
+File name: main.py
+Description:
+Author(s): Kass Chupongstimun, kchupong@ucsd.edu
+		   John So, jyso@ucsd.edu
 '''
 ################################################################################
 
@@ -9,9 +13,11 @@ import time, threading
 from enum import Enum
 # import RPi.GPIO as GPIO
 
+import shared as SV
 from const import *
 from blocker import Blocker
 from payments import Payments
+from sensor_handler import SensorHandler
 
 class CryptoParking(object):
 	'''
@@ -21,12 +27,29 @@ class CryptoParking(object):
 
 		self.blocker = Blocker()
 		self.payments = Payments()
+		self.sensor_handler = SensorHandler()
 
 		self.state = State.EMPTY
 		self.free_parking_timer = None
 		self.payment_timer = None
 		self.parking_start_time = None
 		self.parking_end_time = None
+
+	def start(self):
+		''' Main application loop '''
+
+		while True:
+			if SV.sensor_detected:
+				self.proximity_interrupt_high()
+
+			elif not SV.sensor_detected:
+				self.proximity_interrupt_low()
+
+			elif SV.user_wants_to_pay:
+				self.want_to_pay_interrupt()
+
+			elif SV.payment_received:
+				self.payment_received_interrupt()
 
 	#---------------------------------------------------------------------------
 	# State Transitions
@@ -36,8 +59,8 @@ class CryptoParking(object):
 
 		# Fork a timer thread to keep track of free parking time
 		self.free_parking_timer = threading.Timer(
-			FREE_PARKING_LIMIT,
-			self.free_parking_to_parked
+			FREE_PARKING_LIMIT,				# timeout
+			self.free_parking_to_parked		# callback
 		)
 		self.free_parking_timer.start()
 
@@ -70,6 +93,12 @@ class CryptoParking(object):
 	def parked_to_empty(self):
 		''' Detect case that system detected parking when there's nothing there '''
 
+		# ABNORMAL BEHAVIOR: call system admin
+		self.state = State.BLOCKER_MOVING
+		t_blocker_down = threading.Thread(target=self.blocker.lower)
+		t_blocker_down.start()
+		t_blocker_down.join()
+
 		self.state = State.EMPTY
 		print(self.state)
 
@@ -98,21 +127,21 @@ class CryptoParking(object):
 		self.state = State.PARKED
 		print(self.state)
 
-	def await_payment_to_empty(self):
+	def await_payment_to_free_parking(self):
 		''' Detect when user has successfully paid the amout due '''
-		print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 		self.payment_timer.cancel()
+		print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 
 		self.state = State.BLOCKER_MOVING
 		t_blocker_down = threading.Thread(target=self.blocker.lower)
 		t_blocker_down.start()
 		t_blocker_down.join()
 
-		self.state = State.EMPTY
+		self.state = State.FREE_PARKING
 		print(self.state)
 
 	#---------------------------------------------------------------------------
-	# Interrupt Handlers
+	# Software "Interrupt" Handlers
 	#---------------------------------------------------------------------------
 	def proximity_interrupt_low(self):
 		if self.state == State.FREE_PARKING:
