@@ -19,8 +19,8 @@ def main():
 	print("Crypto Parking Lot")
 
 	app = CryptoParking()
-	# app.start()
-
+	app.start()
+'''
 	while True:
 		cmd = input("\nEnter an action:")
 
@@ -35,7 +35,7 @@ def main():
 		elif cmd == 'wanna pay':
 			app.want_to_pay_interrupt()
 		elif cmd == 'paid':
-			app.payment_received_interrupt()
+			app.payment_received_interrupt()'''
 
 #-------------------------------------------------------------------------------
 # PROGRAM ENTRY POINT

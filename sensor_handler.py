@@ -8,12 +8,15 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 '''
 ################################################################################
 import shared as SV
+# import RPi.GPIO as GPIO
 
 class SensorHandler:
 
 	def __init__(self):
+		pass
 
-		# set up interrupt handler on rising edge
+	def init_interrupts(self):
+		# setup interrupts
 		pass
 
 	def wake_detect(self):
