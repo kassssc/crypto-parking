@@ -26,7 +26,7 @@ class CryptoParking(object):
 		self.gui = GUI()
 		self.blocker = Blocker()
 		self.payments = Payments()
-		self.sensor_handler = SensorHandler()
+		self.sensors = SensorHandler()
 
 		self.free_parking_timer = None
 		self.payment_timer = None

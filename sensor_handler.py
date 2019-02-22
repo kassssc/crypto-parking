@@ -7,17 +7,26 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 		   John So, jyso@ucsd.edu
 '''
 ################################################################################
-import shared as SV
+import threading
+import numpy as np
 # import RPi.GPIO as GPIO
+import shared as SV
+from const import *
 
 class SensorHandler:
 
 	def __init__(self):
-		pass
+		self.counter = 0
+		self.stablize_counter = 0
+		self.buffer = np.zeros(100)
+		self.sensor_val = False
 
 	def init_interrupts(self):
-		# setup interrupts
-		pass
+		GPIO.add_event_detect(
+			PIN_PROXIMITY_SENSOR,
+			GPIO.BOTH,
+			callback=self.wake_detect	# threaded callback
+		)
 
 	def wake_detect(self):
 		'''
@@ -27,14 +36,27 @@ class SensorHandler:
 			Go back to sleep if the readings stablize
 		'''
 
-		# disable interrupts
-
-		while not SV.SENSOR_SLEEP:
+		GPIO.remove_event_detect(PIN_PROXIMITY_SENSOR)	# disable interrupts
+		self.read_sensor()
 			# poll sensor and process raw input
 			# SV.SENSOR_SLEEP = 1 if input stablizes
 			# every once in a while, set SV.SENSOR_DETECTED to update main thread
-			pass
 
-		# set up interrupts again
+	def read_sensor(self):
+		# sensor_in = read from gpio
+		self.buffer[self.counter] = 100 if sensor_in else 0
+		self.counter = (self.counter + 1) % 100
 
+		if self.counter == 0:
+			sensor_val = np.mean(self.buffer) > 50
+			if SV.sensor_detected == sensor_val:
+				self.stablize_counter += 1
+			SV.sensor_detected = sensor_val
 
+		if self.stablize_counter > 3:
+			self.buffer = np.zeros(100)
+			self.counter = 0
+			self.stablize_counter = 0
+			self.init_interrupts()
+		else:
+			threading.Timer(0.01, self.read_sensor).start()
