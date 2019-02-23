@@ -9,7 +9,8 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 ################################################################################
 import threading
 import numpy as np
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
+
 import shared as SV
 from const import *
 
@@ -21,6 +22,8 @@ class SensorHandler:
 		self.buffer = np.zeros(100)
 		self.sensor_val = False
 
+		GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
 	def init_interrupts(self):
 		GPIO.add_event_detect(
 			PIN_PROXIMITY_SENSOR,
@@ -30,33 +33,37 @@ class SensorHandler:
 
 	def wake_detect(self):
 		'''
-			Poll the proximity sensor and preprocess the data
-			Prolly use moving average, gather around 250ms of data
-			Return a single 1 or 0 to finalize whether there is something on the sensor
-			Go back to sleep if the readings stablize
 		'''
 
 		GPIO.remove_event_detect(PIN_PROXIMITY_SENSOR)	# disable interrupts
 		self.read_sensor()
-			# poll sensor and process raw input
-			# SV.SENSOR_SLEEP = 1 if input stablizes
-			# every once in a while, set SV.SENSOR_DETECTED to update main thread
 
 	def read_sensor(self):
-		# sensor_in = read from gpio
-		self.buffer[self.counter] = 100 if sensor_in else 0
+
+		# Add current reading to buffer array
+		self.buffer[self.counter] = 100 if GPIO.input(PIN_PROXIMITY_SENSOR) else 0
+		# Increment counter, loop back to first idx in end of buffer
 		self.counter = (self.counter + 1) % 100
 
+		# Every 1 second, take the averge of readings in the buffer
+		# Set the shared variable to the result
+		# If it reads the same value, add to the stablize counter
 		if self.counter == 0:
 			sensor_val = np.mean(self.buffer) > 50
 			if SV.sensor_detected == sensor_val:
 				self.stablize_counter += 1
 			SV.sensor_detected = sensor_val
 
+		# If GPIO input stablizes, reset everything and go back to waiting for
+		# interrupts on rising/falling edge
 		if self.stablize_counter > 3:
 			self.buffer = np.zeros(100)
 			self.counter = 0
 			self.stablize_counter = 0
 			self.init_interrupts()
+
+		# If GPIO input has not stablized, continue reading values
+		# Calls itself again in a thread in 10ms
 		else:
 			threading.Timer(0.01, self.read_sensor).start()
+
