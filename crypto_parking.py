@@ -185,7 +185,7 @@ class CryptoParking(object):
 		if SV.state == State.FREE_PARKING:
 			self.free_parking_to_empty()
 
-		if SV.state == State.PARKED:
+		elif SV.state == State.PARKED:
 			# shouldn't happen
 			self.parked_to_empty()
 
