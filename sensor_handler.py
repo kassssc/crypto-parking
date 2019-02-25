@@ -17,6 +17,13 @@ from const import *
 class SensorHandler:
 
 	def __init__(self):
+                GPIO.setmode(GPIO.BOARD)
+                GPIO.setup(MOTOR1A, GPIO.OUT)
+                GPIO.setup(MOTOR1B, GPIO.OUT)
+                GPIO.setup(MOTOR1E, GPIO.OUT)
+
+                GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN)
+
 		self.counter = 0
 		self.stablize_counter = 0
 		self.buffer = np.zeros(BUFFER_LEN)

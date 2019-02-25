@@ -84,7 +84,7 @@ class GUI(object):
 		self.main_frame.paid_page.lift()
 
 	def set_amount_due(self, amount):
-		self.main_frame.pay_page.amount_due.set(f"{amount:.5f} BTC")
+		self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
 
 class MainFrame(tk.Frame):
 	def __init__(self, *args, **kwargs):
@@ -111,7 +111,7 @@ class WelcomePage(Page):
 		Page.__init__(self, *args, **kwargs)
 
 		self.config(bg=COLOR_BG, pady=25)
-		parking_rate = f"{PARKING_RATE} BTC / hour"
+		parking_rate = "%.5f BTC / hour" % PARKING_RATE
 
 		labels = [
 			tk.Label(

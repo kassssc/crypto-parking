@@ -104,7 +104,7 @@ class CryptoParking(object):
 
 		# Record the current time, it is when the parking starts
 		self.parking_start_time = time.time()
-		print(f"started parking at {self.parking_start_time}")
+		#print(f"started parking at {self.parking_start_time}")
 
 		SV.state = State.BLOCKER_MOVING
 		t_blocker_up = threading.Thread(target=self.blocker.block)
@@ -135,14 +135,14 @@ class CryptoParking(object):
 
 		# Record the current time, it is when parking ends
 		self.parking_end_time = time.time()
-		print(f"started parking at {self.parking_end_time}")
+		#print(f"started parking at {self.parking_end_time}")
 		total_parked_time = self.parking_end_time - self.parking_start_time
 		payment_due = total_parked_time * PARKING_RATE / 3600.0
 		SV.amount_due = payment_due
 		self.gui.set_amount_due(payment_due)
-		print(f"You parked for {total_parked_time:.3f} seconds")
-		print(f"Payment due: {payment_due:.7f} btc")
-		print(f"Please pay within {PAYMENT_LIMIT} seconds")
+		#print(f"You parked for {total_parked_time:.3f} seconds")
+		#print(f"Payment due: {payment_due:.7f} btc")
+		#print(f"Please pay within {PAYMENT_LIMIT} seconds")
 
 		self.payment_timer = threading.Timer(
 			PAYMENT_LIMIT,
@@ -174,7 +174,7 @@ class CryptoParking(object):
 		self.payment_timer.cancel()
 		self.gui.show_paid_page()
 
-		print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
+		#print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 
 		SV.state = State.BLOCKER_MOVING
 		t_blocker_down = threading.Thread(target=self.blocker.lower)
