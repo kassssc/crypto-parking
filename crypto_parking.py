@@ -16,7 +16,7 @@ from const import *
 from gui import GUI
 from blocker import Blocker
 from payments import Payments
-from sensor_handler import SensorHandler
+#from sensor_handler import SensorHandler
 
 class CryptoParking(object):
 	''' '''
@@ -26,7 +26,7 @@ class CryptoParking(object):
 		self.gui = GUI()
 		self.blocker = Blocker()
 		self.payments = Payments()
-		self.sensors = SensorHandler()
+		#self.sensors = SensorHandler()
 
 		self.free_parking_timer = None
 		self.payment_timer = None
@@ -43,7 +43,7 @@ class CryptoParking(object):
 		t_program_loop = threading.Thread(target=self.main_loop)
 		t_program_loop.start()
 
-		self.sensor_handler.init_interrupts()
+		#self.sensor_handler.init_interrupts()
 
 		#-----------------------------------------------------------------------
 		# MAIN THREAD: tkinter GUI
@@ -152,6 +152,12 @@ class CryptoParking(object):
 
 		# Go to await payment in GUI
 		self.gui.show_pay_page()
+
+		#-----------------------------------------------------------------------
+		# THREAD: Check for payment
+		# Calls itself again in a separate thread every second
+		# Tries for 10 seconds
+		# self.payments.check_for_payment()
 
 		# payment_res = self.payments.await_payment()
 		SV.state = State.AWAIT_PAYMENT

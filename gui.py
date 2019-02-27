@@ -211,21 +211,21 @@ class PayPage(Page):
 				text="Amount Due:",
 				bg=COLOR_BG,
 				fg=COLOR_FG,
-				font=("Helvetica 12 bold")
+				font=("Helvetica 15 bold")
 			),
 			tk.Label(
 				text_frame,
 				textvariable=self.amount_due,
 				bg=COLOR_BG,
 				fg=COLOR_FG,
-				font=("Helvetica 18 bold")
+				font=("Helvetica 22 bold")
 			),
 			tk.Label(
 				text_frame,
 				text="Pay with Bitcoin",
 				bg=COLOR_BG,
 				fg=COLOR_FG,
-				font=("Helvetica 12 bold")
+				font=("Helvetica 15 bold")
 			)
 		]
 
