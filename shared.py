@@ -4,7 +4,7 @@ Crypto Parking: Automated bitcoin parking lot
 File name: shared.py
 Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
-		   John So, jyso@ucsd.edu
+           John So, jyso@ucsd.edu
 '''
 ################################################################################
 
