@@ -9,14 +9,14 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 ################################################################################
 
 import sys, time, threading
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import signal
 
 import shared as SV
 from const import *
 from gui import GUI
 from payments import Payments
-#from sensor_handler import SensorHandler
+from sensor_handler import SensorHandler
 
 class CryptoParking(object):
     ''' '''
@@ -25,7 +25,7 @@ class CryptoParking(object):
 
         self.gui = GUI()
         self.payments = Payments()
-        #self.sensors = SensorHandler()
+        self.sensors = SensorHandler()
 
         self.t_free_parking_timer = None
         self.t_payment_timer = None
@@ -35,7 +35,7 @@ class CryptoParking(object):
 
     def start(self):
         ''' Starts the main program '''
-
+        
         signal.signal(signal.SIGINT, self.exit_gracefully)
 
         #-----------------------------------------------------------------------
@@ -44,7 +44,7 @@ class CryptoParking(object):
         self.t_program_loop = threading.Thread(target=self.main_loop)
         self.t_program_loop.start()
 
-        #self.sensors.init_interrupts()
+        self.sensors.init_interrupts()
 
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
@@ -59,6 +59,20 @@ class CryptoParking(object):
         # Cancel all timers, join all threads
         SV.KILLALL = True
         self.t_program_loop.join()
+
+        threads = [
+            self.t_free_parking_timer,
+            self.t_payment_timer,
+            self.gui.t_switch_page_timer,
+            self.sensors.t_poll_sensor
+        ]
+        for thread in threads:
+            try:
+                thread.cancel()
+                thread.join()
+            except Exception:
+                pass
+        '''
         if self.t_free_parking_timer:
             self.t_free_parking_timer.cancel()
             self.t_free_parking_timer.join()
@@ -71,11 +85,11 @@ class CryptoParking(object):
         # if self.payments.t_check_timer:
         #    self.payments.t_check_timer.cancel()
         #    self.payments.t_check_timer.join()
-        # if self.sensors.t_poll_sensor:
-        #    self.sensors.t_poll_sensor.cancel()
-        #    self.sensors.t_poll_sensor.join()
-
-        #GPIO.cleanup()
+        if self.sensors.t_poll_sensor:
+            self.sensors.t_poll_sensor.cancel()
+            self.sensors.t_poll_sensor.join()
+        '''
+        GPIO.cleanup()
         sys.exit(0)
 
     def main_loop(self):
