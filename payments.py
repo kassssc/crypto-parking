@@ -10,8 +10,6 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 
 import sys
 import time, threading
-from enum import Enum
-# import RPi.GPIO as GPIO
 
 from const import *
 import shared as SV
@@ -20,6 +18,7 @@ class Payments():
 
     def __init__(self):
         self.times_checked = 0
+        self.t_check_timer = 0
 
     def check_for_payment(self):
         '''
@@ -30,7 +29,8 @@ class Payments():
             SV.payment_received = True
         else:
             self.times_checked += 1
-            threading.Timer(1, self.check_for_payment)
+            self.t_check_timer = threading.Timer(1, self.check_for_payment)
+            self.t_check_timer.start()
 
         '''
 

@@ -27,10 +27,9 @@ class SensorHandler:
         self.stablize_counter = 0
         self.buffer = np.zeros(BUFFER_LEN)
         self.sensor_val = False
+        self.t_poll_sensor = None
 
         GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-        self.init_interrupts()
 
     def init_interrupts(self):
         GPIO.add_event_detect(
@@ -43,7 +42,7 @@ class SensorHandler:
         '''
         '''
 
-        print("Detected rising/falling edge")
+        print("Detected rising/falling edge, waking up")
         print(GPIO.input(PIN_PROXIMITY_SENSOR))
         GPIO.remove_event_detect(PIN_PROXIMITY_SENSOR)  # disable interrupts
         self.read_sensor()
@@ -63,6 +62,7 @@ class SensorHandler:
             if SV.sensor_detected == sensor_val:
                 self.stablize_counter += 1
             SV.sensor_detected = sensor_val
+            print("sensor reads %s", "HIGH" if sensor_val else "LOW")
 
         # If GPIO input stablizes, reset everything and go back to waiting for
         # interrupts on rising/falling edge
@@ -71,11 +71,15 @@ class SensorHandler:
             self.counter = 0
             self.stablize_counter = 0
             self.init_interrupts()
+            print("Sensor value stablized, sleeping...")
 
         # If GPIO input has not stablized, continue reading values
         # Calls itself again in a thread in 10ms
         else:
-            threading.Timer(0.01, self.read_sensor).start()
+            #-------------------------------------------------------------------
+            # THREAD: Poll Sensor
+            self.t_poll_sensor = threading.Timer(0.01, self.read_sensor)
+            self.t_poll_sensor.start()
 
     def block(self):
         print("Blocker coming up...")
@@ -83,7 +87,7 @@ class SensorHandler:
         GPIO.output(MOTOR1B, GPIO.LOW)
         GPIO.output(MOTOR1E, GPIO.HIGH)
         time.sleep(2)
-        
+
         GPIO.output(MOTOR1E, GPIO.LOW)
         print("Spot is now blocked")
 

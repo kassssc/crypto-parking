@@ -24,9 +24,12 @@ class GUI(object):
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
         self.window.geometry("480x320")
-        self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
+        #self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
         self.main_frame = MainFrame(self.window)
         self.main_frame.pack(side="top", fill="both", expand=True)
+        self.t_switch_page_timer = None
+
+        # Dummy buttons simulate input
         self.frame = tk.Frame(self.window)
         self.frame.pack(side="bottom", fill="x", expand=False)
 
@@ -57,9 +60,6 @@ class GUI(object):
         self.show_main_page()
         self.window.mainloop()
 
-    def on_exit(self):
-        SV.KILLALL = True
-
     def s1(self):
         SV.sensor_detected = True
 
@@ -71,8 +71,8 @@ class GUI(object):
 
         #-----------------------------------------------------------------------
         # THREAD: Show Payment Received Page
-        self.switch_page_timer = threading.Timer(5, self.show_main_page)
-        self.switch_page_timer.start()
+        self.t_switch_page_timer = threading.Timer(5, self.show_main_page)
+        self.t_switch_page_timer.start()
 
     def show_main_page(self):
         self.main_frame.welcome_page.lift()
