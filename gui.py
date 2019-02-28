@@ -89,7 +89,7 @@ class GUI(object):
     def set_amount_due(self, amount):
         self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
 
-    def quit(self):
+    def quit(self, instance):
         self.window.destroy()
 
 class MainFrame(tk.Frame):
