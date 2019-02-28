@@ -24,6 +24,9 @@ class GUI(object):
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
         self.window.geometry("480x320")
+        self.window.attributes("-fullscreen", True)
+        self.window.bind("<Escape>", self.quit)
+        self.window.bind("x", self.quit)
         #self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
         self.main_frame = MainFrame(self.window)
         self.main_frame.pack(side="top", fill="both", expand=True)
@@ -85,6 +88,9 @@ class GUI(object):
 
     def set_amount_due(self, amount):
         self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
+
+    def quit(self):
+        self.window.destroy()
 
 class MainFrame(tk.Frame):
     def __init__(self, *args, **kwargs):
