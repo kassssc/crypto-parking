@@ -1,143 +1,248 @@
 ################################################################################
 '''
-
+Crypto Parking: Automated bitcoin parking lot
+File name: crypto_parking.py
+Description:
+Author(s): Kass Chupongstimun, kchupong@ucsd.edu
+           John So, jyso@ucsd.edu
 '''
 ################################################################################
 
-import sys
-import time, threading
-from enum import Enum
-# import RPi.GPIO as GPIO
+import sys, time, threading
+import RPi.GPIO as GPIO
+import signal
 
+import shared as SV
 from const import *
-from blocker import Blocker
+from gui import GUI
 from payments import Payments
+from sensor_handler import SensorHandler
 
 class CryptoParking(object):
-	'''
-	'''
+    ''' '''
 
-	def __init__(self):
+    def __init__(self):
 
-		self.blocker = Blocker()
-		self.payments = Payments()
+        self.gui = GUI()
+        self.payments = Payments()
+        self.sensors = SensorHandler()
 
-		self.state = State.EMPTY
-		self.free_parking_timer = None
-		self.payment_timer = None
-		self.parking_start_time = None
-		self.parking_end_time = None
+        self.t_free_parking_timer = None
+        self.t_payment_timer = None
+        self.parking_start_time = None
+        self.parking_end_time = None
+        SV.state = State.EMPTY
 
-	#---------------------------------------------------------------------------
-	# State Transitions
-	#---------------------------------------------------------------------------
-	def empty_to_free_parking(self):
-		''' Detects that a car entered the spot '''
+    def start(self):
+        ''' Starts the main program '''
+        
+        signal.signal(signal.SIGINT, self.exit_gracefully)
 
-		# Fork a timer thread to keep track of free parking time
-		self.free_parking_timer = threading.Timer(
-			FREE_PARKING_LIMIT,
-			self.free_parking_to_parked
-		)
-		self.free_parking_timer.start()
+        #-----------------------------------------------------------------------
+        # THREAD: Main Polling Loop
+        # Run the main program loop on a second thread
+        self.t_program_loop = threading.Thread(target=self.main_loop)
+        self.t_program_loop.start()
 
-		self.state = State.FREE_PARKING
-		print(self.state)
+        self.sensors.init_interrupts()
 
-	def free_parking_to_empty(self):
-		''' Detects that a car left the spot '''
+        #-----------------------------------------------------------------------
+        # MAIN THREAD: tkinter GUI
+        # initialize tkinter GUI in the main thread
+        # tkinter gets pissed when it is not in the main thread
+        self.gui.run()
 
-		# Cancels the timer because a car is no longer detected
-		self.free_parking_timer.cancel()
+        self.exit_gracefully()
 
-		self.state = State.EMPTY
-		print(self.state)
+    def exit_gracefully(self, sig=None, frame=None):
 
-	def free_parking_to_parked(self):
-		''' Detect that a car has officially parked in the spot '''
+        # Cancel all timers, join all threads
+        SV.KILLALL = True
+        self.t_program_loop.join()
 
-		# Record the current time, it is when the parking starts
-		self.parking_start_time = time.time()
+        threads = [
+            self.t_free_parking_timer,
+            self.t_payment_timer,
+            self.gui.t_switch_page_timer,
+            self.sensors.t_poll_sensor
+        ]
+        for thread in threads:
+            try:
+                thread.cancel()
+                thread.join()
+            except Exception:
+                pass
+        '''
+        if self.t_free_parking_timer:
+            self.t_free_parking_timer.cancel()
+            self.t_free_parking_timer.join()
+        if self.t_payment_timer:
+            self.t_payment_timer.cancel()
+            self.t_free_parking_timer.join()
+        if self.gui.t_switch_page_timer:
+            self.gui.t_switch_page_timer.cancel()
+            self.gui.t_switch_page_timer.join()
+        # if self.payments.t_check_timer:
+        #    self.payments.t_check_timer.cancel()
+        #    self.payments.t_check_timer.join()
+        if self.sensors.t_poll_sensor:
+            self.sensors.t_poll_sensor.cancel()
+            self.sensors.t_poll_sensor.join()
+        '''
+        GPIO.cleanup()
+        sys.exit(0)
 
-		self.state = State.BLOCKER_MOVING
-		t_blocker_up = threading.Thread(target=self.blocker.block)
-		t_blocker_up.start()
-		t_blocker_up.join()
+    def main_loop(self):
+        ''' Main application loop '''
 
-		self.state = State.PARKED
-		print(self.state)
+        while True:
 
-	def parked_to_empty(self):
-		''' Detect case that system detected parking when there's nothing there '''
+            if SV.KILLALL:
+                break
 
-		self.state = State.EMPTY
-		print(self.state)
+            if SV.sensor_detected:
+                self.proximity_interrupt_high()
+            else:
+                self.proximity_interrupt_low()
 
-	def parked_to_await_payment(self):
-		''' Detect when user expresses desire to pay for parking '''
+            if SV.user_wants_to_pay:
+                self.want_to_pay_interrupt()
 
-		# Record the current time, it is when parking ends
-		self.parking_end_time = time.time()
-		total_parked_time = self.parking_end_time - self.parking_start_time
-		payment_due = total_parked_time * PARKING_RATE
-		print(f"You parked for {total_parked_time:.2f} seconds")
-		print(f"Payment due: {payment_due:.5f} btc")
-		print(f"Please pay within {PAYMENT_LIMIT} seconds")
+            if SV.payment_received:
+                self.payment_received_interrupt()
 
-		self.payment_timer = threading.Timer(
-			PAYMENT_LIMIT,
-			self.await_payment_to_parked
-		)
-		self.payment_timer.start()
-		# payment_res = self.payments.await_payment()
-		self.state = State.AWAIT_PAYMENT
-		print(self.state)
+    #---------------------------------------------------------------------------
+    # State Transitions
+    #---------------------------------------------------------------------------
+    def empty_to_free_parking(self):
+        ''' Detects that a car entered the spot '''
 
-	def await_payment_to_parked(self):
-		''' Detect when user fails to pay within time limit '''
-		self.state = State.PARKED
-		print(self.state)
+        #-----------------------------------------------------------------------
+        # THREAD: Free Parking Timer
+        # Fork a timer thread to keep track of free parking time
+        self.t_free_parking_timer = threading.Timer(
+            FREE_PARKING_LIMIT,             # timeout
+            self.free_parking_to_parked     # callback
+        )
+        self.t_free_parking_timer.start()
 
-	def await_payment_to_empty(self):
-		''' Detect when user has successfully paid the amout due '''
-		print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
-		self.payment_timer.cancel()
+        SV.state = State.FREE_PARKING
+        print(SV.state)
 
-		self.state = State.BLOCKER_MOVING
-		t_blocker_down = threading.Thread(target=self.blocker.lower)
-		t_blocker_down.start()
-		t_blocker_down.join()
+    def free_parking_to_empty(self):
+        ''' Detects that a car left the spot '''
 
-		self.state = State.EMPTY
-		print(self.state)
+        # Cancels the timer because a car is no longer detected
+        self.t_free_parking_timer.cancel()
 
-	#---------------------------------------------------------------------------
-	# Interrupt Handlers
-	#---------------------------------------------------------------------------
-	def proximity_interrupt_low(self):
-		if self.state == State.FREE_PARKING:
-			self.free_parking_to_empty()
+        SV.state = State.EMPTY
+        print(SV.state)
 
-		if self.state == State.PARKED:
-			# shouldn't happen
-			self.parked_to_empty()
+    def free_parking_to_parked(self):
+        ''' Detect that a car has officially parked in the spot '''
 
-	def proximity_interrupt_high(self):
-		if self.state == State.EMPTY:
-			self.empty_to_free_parking()
+        # Record the current time, it is when the parking starts
+        self.parking_start_time = time.time()
+        #print(f"started parking at {self.parking_start_time}")
 
-	def want_to_pay_interrupt(self):
-		if self.state == State.PARKED:
-			self.parked_to_await_payment()
+        SV.state = State.BLOCKER_MOVING
+        #t_blocker_up = threading.Thread(target=self.sensors.block)
+        #t_blocker_up.start()
+        #t_blocker_up.join()
 
-	def payment_received_interrupt(self):
-		if self.state == State.AWAIT_PAYMENT:
-			self.await_payment_to_empty()
+        # Go to parked page in GUI
+        self.gui.show_parked_page()
 
-class State(Enum):
-	EMPTY = 0
-	FREE_PARKING = 1
-	PARKED = 2
-	AWAIT_PAYMENT = 3
-	PAID = 4
-	BLOCKER_MOVING = 5
+        SV.state = State.PARKED
+        print(SV.state)
+
+    def parked_to_empty(self):
+        ''' Detect case that system detected parking when there's nothing there '''
+        self.gui.show_main_page()
+        # ABNORMAL BEHAVIOR: call system admin
+        SV.state = State.BLOCKER_MOVING
+        #t_blocker_down = threading.Thread(target=self.sensors.lower)
+        #t_blocker_down.start()
+        #t_blocker_down.join()
+
+        SV.state = State.EMPTY
+        print(SV.state)
+
+    def parked_to_await_payment(self):
+        ''' Detect when user expresses desire to pay for parking '''
+
+        # Record the current time, it is when parking ends
+        self.parking_end_time = time.time()
+        #print(f"started parking at {self.parking_end_time}")
+        total_parked_time = self.parking_end_time - self.parking_start_time
+        payment_due = total_parked_time * PARKING_RATE / 3600.0
+        SV.amount_due = payment_due
+        self.gui.set_amount_due(payment_due)
+        #print(f"You parked for {total_parked_time:.3f} seconds")
+        #print(f"Payment due: {payment_due:.7f} btc")
+        #print(f"Please pay within {PAYMENT_LIMIT} seconds")
+
+        self.t_payment_timer = threading.Timer(
+            PAYMENT_LIMIT,
+            self.await_payment_to_parked
+        )
+        self.t_payment_timer.start()
+
+        # Go to await payment in GUI
+        self.gui.show_pay_page()
+
+        #-----------------------------------------------------------------------
+        # THREAD: Check for payment
+        # Calls itself again in a separate thread every second
+        # Tries for 10 seconds
+        # self.payments.check_for_payment()
+
+        # payment_res = self.payments.await_payment()
+        SV.state = State.AWAIT_PAYMENT
+        print(SV.state)
+
+    def await_payment_to_parked(self):
+        ''' Detect when user fails to pay within time limit '''
+        self.gui.show_parked_page()
+        SV.state = State.PARKED
+        print(SV.state)
+
+    def await_payment_to_free_parking(self):
+        ''' Detect when user has successfully paid the amout due '''
+        self.t_payment_timer.cancel()
+        self.gui.show_paid_page()
+
+        #print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
+
+        SV.state = State.BLOCKER_MOVING
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
+        t_blocker_down.start()
+        t_blocker_down.join()
+
+        SV.state = State.FREE_PARKING
+        print(SV.state)
+
+    #---------------------------------------------------------------------------
+    # Software "Interrupt" Handlers
+    #---------------------------------------------------------------------------
+    def proximity_interrupt_low(self):
+        if SV.state == State.FREE_PARKING:
+            self.free_parking_to_empty()
+
+        elif SV.state == State.PARKED:
+            # shouldn't happen
+            self.parked_to_empty()
+
+    def proximity_interrupt_high(self):
+        if SV.state == State.EMPTY:
+            self.empty_to_free_parking()
+
+    def want_to_pay_interrupt(self):
+        SV.user_wants_to_pay = False
+        if SV.state == State.PARKED:
+            self.parked_to_await_payment()
+
+    def payment_received_interrupt(self):
+        SV.payment_received = False
+        if SV.state == State.AWAIT_PAYMENT:
+            self.await_payment_to_free_parking()
