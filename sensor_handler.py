@@ -10,6 +10,7 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 import threading
 import numpy as np
 import RPi.GPIO as GPIO
+import time
 
 import shared as SV
 from const import *
@@ -22,14 +23,14 @@ class SensorHandler:
         GPIO.setup(MOTOR1B, GPIO.OUT)
         GPIO.setup(MOTOR1E, GPIO.OUT)
 
-        GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN)
-
         self.counter = 0
         self.stablize_counter = 0
         self.buffer = np.zeros(BUFFER_LEN)
         self.sensor_val = False
 
         GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+        self.init_interrupts()
 
     def init_interrupts(self):
         GPIO.add_event_detect(
@@ -38,10 +39,12 @@ class SensorHandler:
             callback=self.wake_detect   # threaded callback
         )
 
-    def wake_detect(self):
+    def wake_detect(self, instance):
         '''
         '''
 
+        print("Detected rising/falling edge")
+        print(GPIO.input(PIN_PROXIMITY_SENSOR))
         GPIO.remove_event_detect(PIN_PROXIMITY_SENSOR)  # disable interrupts
         self.read_sensor()
 
@@ -74,3 +77,22 @@ class SensorHandler:
         else:
             threading.Timer(0.01, self.read_sensor).start()
 
+    def block(self):
+        print("Blocker coming up...")
+        GPIO.output(MOTOR1A, GPIO.HIGH)
+        GPIO.output(MOTOR1B, GPIO.LOW)
+        GPIO.output(MOTOR1E, GPIO.HIGH)
+        time.sleep(2)
+        
+        GPIO.output(MOTOR1E, GPIO.LOW)
+        print("Spot is now blocked")
+
+    def lower(self):
+        print("Blocker lowering...")
+        GPIO.output(MOTOR1A, GPIO.LOW)
+        GPIO.output(MOTOR1B, GPIO.HIGH)
+        GPIO.output(MOTOR1E, GPIO.HIGH)
+        time.sleep(2)
+
+        GPIO.output(MOTOR1E, GPIO.LOW)
+        print("Blocker is now lowered")

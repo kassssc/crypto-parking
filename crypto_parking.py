@@ -9,14 +9,20 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 ################################################################################
 
 import sys, time, threading
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
+import signal
 
 import shared as SV
 from const import *
 from gui import GUI
 from blocker import Blocker
 from payments import Payments
-#from sensor_handler import SensorHandler
+from sensor_handler import SensorHandler
+
+def exit_gracefully(sig, frame):
+    print("Detected SIGINT")
+    GPIO.cleanup()
+    sys.exit(0)
 
 class CryptoParking(object):
     ''' '''
@@ -24,9 +30,8 @@ class CryptoParking(object):
     def __init__(self):
 
         self.gui = GUI()
-        self.blocker = Blocker()
         self.payments = Payments()
-        #self.sensors = SensorHandler()
+        self.sensors = SensorHandler()
 
         self.free_parking_timer = None
         self.payment_timer = None
@@ -37,6 +42,7 @@ class CryptoParking(object):
     def start(self):
         ''' Starts the main program '''
 
+        signal.signal(signal.SIGINT, exit_gracefully)
         #-----------------------------------------------------------------------
         # THREAD: Main Polling Loop
         # Run the main program loop on a second thread
@@ -57,9 +63,6 @@ class CryptoParking(object):
         ''' Main application loop '''
 
         while True:
-
-            if SV.KILLALL:
-                sys.exit()
 
             if SV.sensor_detected:
                 self.proximity_interrupt_high()
@@ -107,7 +110,7 @@ class CryptoParking(object):
         #print(f"started parking at {self.parking_start_time}")
 
         SV.state = State.BLOCKER_MOVING
-        t_blocker_up = threading.Thread(target=self.blocker.block)
+        t_blocker_up = threading.Thread(target=self.sensors.block)
         t_blocker_up.start()
         t_blocker_up.join()
 
@@ -122,7 +125,7 @@ class CryptoParking(object):
         self.gui.show_main_page()
         # ABNORMAL BEHAVIOR: call system admin
         SV.state = State.BLOCKER_MOVING
-        t_blocker_down = threading.Thread(target=self.blocker.lower)
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
         t_blocker_down.join()
 
@@ -177,7 +180,7 @@ class CryptoParking(object):
         #print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 
         SV.state = State.BLOCKER_MOVING
-        t_blocker_down = threading.Thread(target=self.blocker.lower)
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
         t_blocker_down.join()
 
