@@ -23,14 +23,15 @@ class GUI(object):
 
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
-        self.window.geometry("480x320")
+        #self.window.geometry("480x320")
         self.window.attributes("-fullscreen", True)
+
         self.window.bind("<Escape>", self.quit)
         self.window.bind("x", self.quit)
+
         #self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
         self.main_frame = MainFrame(self.window)
         self.main_frame.pack(side="top", fill="both", expand=True)
-        self.t_switch_page_timer = None
 
         # Dummy buttons simulate input
         self.frame = tk.Frame(self.window)
@@ -74,8 +75,8 @@ class GUI(object):
 
         #-----------------------------------------------------------------------
         # THREAD: Show Payment Received Page
-        self.t_switch_page_timer = threading.Timer(5, self.show_main_page)
-        self.t_switch_page_timer.start()
+        SV.threads['thank_you_page'] = threading.Timer(5, self.show_main_page)
+        SV.threads['thank_you_page'].start()
 
     def show_main_page(self):
         self.main_frame.welcome_page.lift()
@@ -91,6 +92,7 @@ class GUI(object):
 
     def quit(self, instance):
         self.window.destroy()
+        SV.KILL = True
 
 class MainFrame(tk.Frame):
     def __init__(self, *args, **kwargs):

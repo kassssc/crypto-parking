@@ -22,15 +22,19 @@ class Payments():
 
     def check_for_payment(self):
         '''
-        payment_received = check_bitcoin_transaction(SV.amount_due)
-        if payment_received or self.times_checked > 10:
-            self.times_checked = 0
-            SV.amount_due = 0
-            SV.payment_received = True
-        else:
-            self.times_checked += 1
-            self.t_check_timer = threading.Timer(1, self.check_for_payment)
-            self.t_check_timer.start()
+        with SV.lock:
+            payment_received = check_bitcoin_transaction(SV.amount_due)
+            if payment_received or self.times_checked > 60:
+                self.times_checked = 0
+                SV.amount_due = 0
+                SV.payment_received = True
+            else:
+                self.times_checked += 1
+                SV.threads['check_payment'] = threading.Timer(
+                    1,
+                    self.check_for_payment
+                )
+                SV.threads['check_payment'].start()
 
         '''
 
