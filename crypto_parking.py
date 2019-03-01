@@ -8,10 +8,12 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 '''
 ################################################################################
 
-import sys, time, threading, signal
+import sys, time, threading, signal, json
+from enum import Enum
+from pathlib import Path
 
 import shared as SV
-from const import *
+import const
 from gui import GUI
 from payments import Payments
 #from sensor_handler import SensorHandler
@@ -21,6 +23,17 @@ class CryptoParking(object):
 
     def __init__(self):
 
+        with Path('./config.json').open('r') as f:
+            config = json.load(f)
+            try:
+                const.FREE_PARKING_LIMIT = config['free_parking_limit']
+                const.PAYMENT_LIMIT = config['payment_limit']
+                const.PARKING_RATE = config['parking_rate']
+                const.BITCOIN_ADDR = config['bitcoin_addr']
+            except KeyError:
+                print("Bad config file")
+                sys.exit(0)
+
         self.gui = GUI()
         self.payments = Payments()
         #self.sensors = SensorHandler()
@@ -28,6 +41,7 @@ class CryptoParking(object):
         self.parking_start_time = None
         self.parking_end_time = None
         SV.state = State.EMPTY
+
 
     def start(self):
         ''' Starts the main program '''
@@ -95,7 +109,7 @@ class CryptoParking(object):
         # THREAD: Free Parking Timer
         # Fork a timer thread to keep track of free parking time
         SV.threads['free_parking'] = threading.Timer(
-            FREE_PARKING_LIMIT,             # timeout
+            const.FREE_PARKING_LIMIT,             # timeout
             self.free_parking_to_parked     # callback
         )
         SV.threads['free_parking'].start()
@@ -150,15 +164,15 @@ class CryptoParking(object):
         self.parking_end_time = time.time()
         #print(f"started parking at {self.parking_end_time}")
         total_parked_time = self.parking_end_time - self.parking_start_time
-        payment_due = total_parked_time * PARKING_RATE / 3600.0
+        payment_due = total_parked_time * const.PARKING_RATE / 3600.0
         SV.amount_due = payment_due
-        self.gui.set_amount_due(payment_due)
+        self.gui.set_pay_text(payment_due, total_parked_time)
         #print(f"You parked for {total_parked_time:.3f} seconds")
         #print(f"Payment due: {payment_due:.7f} btc")
         #print(f"Please pay within {PAYMENT_LIMIT} seconds")
 
         SV.threads['wait_for_payment'] = threading.Timer(
-            PAYMENT_LIMIT,
+            const.PAYMENT_LIMIT,
             self.await_payment_to_parked
         )
         SV.threads['wait_for_payment'].start()
@@ -221,3 +235,11 @@ class CryptoParking(object):
         SV.payment_received = False
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_free_parking()
+
+class State(Enum):
+    EMPTY = 0
+    FREE_PARKING = 1
+    PARKED = 2
+    AWAIT_PAYMENT = 3
+    PAID = 4
+    BLOCKER_MOVING = 5
