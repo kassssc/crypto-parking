@@ -1,0 +1,6 @@
+{
+	"free_parking_limit": 5,
+	"payment_limit": 15,
+	"parking_rate": 0.1,
+	"bitcoin_addr": "bc1qnrh75sy6uqyaanrjudaccp4trpw549pdpxgzmv"
+}
