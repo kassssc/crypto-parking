@@ -103,3 +103,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 assets/pay_btn.ai
+*.ai

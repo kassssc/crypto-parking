@@ -9,7 +9,7 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 ################################################################################
 
 FREE_PARKING_LIMIT = 0      # seconds
-PAYMENT_LIMIT = 0              # seconds
+PAYMENT_LIMIT = 0           # seconds
 PARKING_RATE = 0
 #PARKING_RATE = 0.00077     # btc / hour
 BITCOIN_ADDR = None

@@ -24,21 +24,56 @@ class GUI(object):
 
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
-        #self.window.geometry("480x320")
-        self.window.attributes("-fullscreen", True)
+        self.window.geometry("480x320")
+        #self.window.attributes("-fullscreen", True)
 
         self.window.bind("<Escape>", self.quit)
         self.window.bind("x", self.quit)
+        self.window.config(bg=const.COLOR_BG)
 
         #self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
         self.main_frame = MainFrame(self.window)
         self.main_frame.pack(side="top", fill="both", expand=True)
 
         # Dummy buttons simulate input
-        self.frame = tk.Frame(self.window)
-        self.frame.pack(side="bottom", fill="x", expand=False)
+        self.frame = tk.Frame(
+            self.window,
+            bg=const.COLOR_BG
+        )
+        self.frame.pack(
+            side="bottom",
+            fill="x",
+            expand=False,
+            pady=15
+        )
 
-        self.confirm = tk.Button(
+        self.call_admin_btn_img = ImageTk.PhotoImage(file="./assets/call_admin_btn.png")
+        self.call_admin_btn = tk.Button(
+            self.frame,
+            width=175,
+            height=35,
+            highlightthickness=0,
+            highlightbackground=const.COLOR_BG,
+            bd=-2,
+            bg=const.COLOR_BG,
+            command=self.call_admin,
+            image=self.call_admin_btn_img
+        )
+        self.call_admin_btn.pack()
+
+        self.help_otw_btn_img = ImageTk.PhotoImage(file="./assets/help_otw.png")
+        self.help_otw_btn = tk.Button(
+            self.frame,
+            width=175,
+            height=35,
+            highlightthickness=0,
+            highlightbackground=const.COLOR_BG,
+            bd=-2,
+            bg=const.COLOR_BG,
+            image=self.help_otw_btn_img
+        )
+
+        '''self.confirm = tk.Button(
             self.frame,
             text="Confirm paid",
             width=16,
@@ -59,7 +94,7 @@ class GUI(object):
 
         self.confirm.pack()
         self.s1.pack()
-        self.s0.pack()
+        self.s0.pack()'''
 
     def run(self):
         self.show_main_page()
@@ -96,6 +131,21 @@ class GUI(object):
         self.window.destroy()
         SV.KILL = True
 
+    def call_admin(self):
+        # send email
+        self.call_admin_btn.pack_forget()
+        self.help_otw_btn.pack()
+
+        SV.threads['help_btn'] = threading.Timer(
+            10,
+            self.revert_call_admin_btn
+        )
+        SV.threads['help_btn'].start()
+
+    def revert_call_admin_btn(self):
+        self.help_otw_btn.pack_forget()
+        self.call_admin_btn.pack()
+
 class MainFrame(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
@@ -120,7 +170,7 @@ class WelcomePage(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
 
-        self.config(bg=const.COLOR_BG, pady=25)
+        self.config(bg=const.COLOR_BG, pady=20)
         parking_rate = "%.5f BTC / hour" % const.PARKING_RATE
 
         labels = [
@@ -161,7 +211,7 @@ class ParkedPage(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
 
-        self.config(bg=const.COLOR_BG, pady=25)
+        self.config(bg=const.COLOR_BG, pady=20)
         self.btn_img = ImageTk.PhotoImage(file="./assets/pay_btn.png")
         items = [
             tk.Label(
@@ -173,8 +223,8 @@ class ParkedPage(Page):
             ),
             tk.Button(
                 self,
-                width=190,
-                height=35,
+                width=250,
+                height=50,
                 highlightthickness=0,
                 highlightbackground=const.COLOR_BG,
                 bd=-2,
@@ -198,7 +248,7 @@ class PayPage(Page):
         self.time_parked = tk.StringVar()
         self.config(bg=const.COLOR_BG)
 
-        self.img = ImageTk.PhotoImage(file="./assets/QR.png")
+        #self.img = ImageTk.PhotoImage(file="./assets/QR.png")
         qr = qrcode.QRCode(
             version=2,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -215,7 +265,6 @@ class PayPage(Page):
             )
         )
 
-        print(self.img)
         img_frame = tk.Frame(
             self,
             bg=const.COLOR_BG,

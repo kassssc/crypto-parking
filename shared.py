@@ -18,7 +18,8 @@ threads = {
 	'free_parking': None,
 	'wait_for_payment': None,
 	'check_payment': None,
-	'thank_you_page': None
+	'thank_you_page': None,
+	'help_btn': None
 }
 
 sensor_detected = False
