@@ -73,7 +73,7 @@ class GUI(object):
             image=self.help_otw_btn_img
         )
 
-        '''self.confirm = tk.Button(
+        self.confirm = tk.Button(
             self.frame,
             text="Confirm paid",
             width=16,
@@ -94,7 +94,7 @@ class GUI(object):
 
         self.confirm.pack()
         self.s1.pack()
-        self.s0.pack()'''
+        self.s0.pack()
 
     def run(self):
         self.show_main_page()
@@ -124,7 +124,8 @@ class GUI(object):
         self.main_frame.paid_page.lift()
 
     def set_pay_text(self, amount, time):
-        self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
+        #self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
+        self.main_frame.pay_page.amount_due.set("%d satoshi" % amount)
         self.main_frame.pay_page.time_parked.set("%.3f seconds" % time)
 
     def quit(self, instance):
@@ -171,7 +172,8 @@ class WelcomePage(Page):
         Page.__init__(self, *args, **kwargs)
 
         self.config(bg=const.COLOR_BG, pady=20)
-        parking_rate = "%.5f BTC / hour" % const.PARKING_RATE
+        #parking_rate = "%.5f BTC / hour" % const.PARKING_RATE
+        parking_rate = "%d satoshi / second" % const.PARKING_RATE
 
         labels = [
             tk.Label(

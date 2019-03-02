@@ -13,6 +13,7 @@ PAYMENT_LIMIT = 0           # seconds
 PARKING_RATE = 0
 #PARKING_RATE = 0.00077     # btc / hour
 BITCOIN_ADDR = None
+BITCOIN_BASE_API = 'https://blockchain.info/rawaddr/'
 
 MOTOR1A = 15
 MOTOR1B = 13

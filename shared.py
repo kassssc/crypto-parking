@@ -26,6 +26,7 @@ sensor_detected = False
 user_wants_to_pay = False
 payment_received = False
 amount_due = 0.0
+transaction_age_threshold = None
 
 KILL = False
 

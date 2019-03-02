@@ -162,10 +162,13 @@ class CryptoParking(object):
 
         # Record the current time, it is when parking ends
         self.parking_end_time = time.time()
+        print(self.parking_end_time)
+        SV.transaction_age_threshold = int(self.parking_end_time)
         #print(f"started parking at {self.parking_end_time}")
         total_parked_time = self.parking_end_time - self.parking_start_time
-        payment_due = total_parked_time * const.PARKING_RATE / 3600.0
-        SV.amount_due = payment_due
+        #payment_due = total_parked_time * const.PARKING_RATE / 3600.0
+        payment_due = int(total_parked_time * const.PARKING_RATE)
+        SV.amount_due = int(payment_due)
         self.gui.set_pay_text(payment_due, total_parked_time)
         #print(f"You parked for {total_parked_time:.3f} seconds")
         #print(f"Payment due: {payment_due:.7f} btc")
@@ -184,7 +187,7 @@ class CryptoParking(object):
         # THREAD: Check for payment
         # Calls itself again in a separate thread every second
         # Tries for 60 seconds
-        # self.payments.check_for_payment()
+        threading.Thread(target=self.payments.check_for_payment).start()
 
         SV.state = State.AWAIT_PAYMENT
         print(SV.state)
