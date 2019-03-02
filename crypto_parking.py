@@ -16,7 +16,7 @@ import shared as SV
 import const
 from gui import GUI
 from payments import Payments
-#from sensor_handler import SensorHandler
+from sensor_handler import SensorHandler
 
 class CryptoParking(object):
     ''' '''
@@ -36,7 +36,7 @@ class CryptoParking(object):
 
         self.gui = GUI()
         self.payments = Payments()
-        #self.sensors = SensorHandler()
+        self.sensors = SensorHandler()
 
         self.parking_start_time = None
         self.parking_end_time = None
@@ -54,7 +54,7 @@ class CryptoParking(object):
         SV.threads['main_loop'] = threading.Thread(target=self.main_loop)
         SV.threads['main_loop'].start()
 
-        #self.sensors.init_interrupts()
+        self.sensors.init_interrupts()
 
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
@@ -135,9 +135,9 @@ class CryptoParking(object):
             #print(f"started parking at {self.parking_start_time}")
 
             SV.state = State.BLOCKER_MOVING
-            #t_blocker_up = threading.Thread(target=self.sensors.block)
-            #t_blocker_up.start()
-            #t_blocker_up.join()
+            t_blocker_up = threading.Thread(target=self.sensors.block)
+            t_blocker_up.start()
+            t_blocker_up.join()
 
             # Go to parked page in GUI
             self.gui.show_parked_page()
@@ -150,9 +150,9 @@ class CryptoParking(object):
         self.gui.show_main_page()
         # ABNORMAL BEHAVIOR: call system admin
         SV.state = State.BLOCKER_MOVING
-        #t_blocker_down = threading.Thread(target=self.sensors.lower)
-        #t_blocker_down.start()
-        #t_blocker_down.join()
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
+        t_blocker_down.start()
+        t_blocker_down.join()
 
         SV.state = State.EMPTY
         print(SV.state)
@@ -207,9 +207,9 @@ class CryptoParking(object):
         #print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
 
         SV.state = State.BLOCKER_MOVING
-        #t_blocker_down = threading.Thread(target=self.sensors.lower)
-        #t_blocker_down.start()
-        #t_blocker_down.join()
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
+        t_blocker_down.start()
+        t_blocker_down.join()
 
         SV.state = State.FREE_PARKING
         print(SV.state)
