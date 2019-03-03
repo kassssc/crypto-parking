@@ -30,15 +30,15 @@ class Alerts:
             print("Could not send email " + str(type(ex)))
 
     def send_user_alert(self):
-
+        subject = "User Requesting Assistance"
         email_text = """\
         From: %s
         To: %s
-        Subject: User Requesting Assistance
+        Subject: %s
 
         A user at your automated parking space is requesting your presence.
         If you are not present in 1 hour, the space will automatically open.
-        """ % (self.username, self.admin_email)
+        """ % (self.username, self.admin_email, subject)
         self.send_email(email_text)
 
     def send_error_alert(self):
