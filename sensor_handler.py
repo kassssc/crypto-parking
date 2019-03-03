@@ -15,6 +15,7 @@ import time
 import shared as SV
 import const
 
+
 class SensorHandler:
 
     def __init__(self):
@@ -62,7 +63,7 @@ class SensorHandler:
         # Set the shared variable to the result
         # If it reads the same value, add to the stablize counter
         if self.counter == 49:
-            sensor_val = np.mean(self.buffer) > 0.5 # might change to a different threshold
+            sensor_val = np.mean(self.buffer) > 0.5  # might change to a different threshold
             if SV.sensor_detected == sensor_val:
                 self.stablize_counter += 1
             SV.sensor_detected = sensor_val
@@ -87,7 +88,8 @@ class SensorHandler:
 
     def check_obstruction(self, timeout):
         for i in range(timeout*1000):
-            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR) is GPIO.LOW:
+            print(GPIO.input(const.PIN_OBSTRUCTION_SENSOR))
+            if not GPIO.input(const.PIN_OBSTRUCTION_SENSOR):
                 return True
             time.sleep(.001)
         return False
