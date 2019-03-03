@@ -28,7 +28,6 @@ class SensorHandler:
         self.stablize_counter = 0
         self.buffer = np.zeros(const.BUFFER_LEN)
         self.sensor_val = False
-        self.t_poll_sensor = None
 
         GPIO.setup(const.PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.setup(const.PIN_OBSTRUCTION_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -88,8 +87,7 @@ class SensorHandler:
 
     def check_obstruction(self, timeout):
         for i in range(timeout*1000):
-            print(GPIO.input(const.PIN_OBSTRUCTION_SENSOR))
-            if not GPIO.input(const.PIN_OBSTRUCTION_SENSOR):
+            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR):
                 return True
             time.sleep(.001)
         return False

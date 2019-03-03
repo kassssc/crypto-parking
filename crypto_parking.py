@@ -207,7 +207,9 @@ class CryptoParking(object):
         ''' Detect when user has successfully paid the amout due '''
 
         self.gui.show_paid_page()
-
+        if not self.sensors.check_obstruction(15):
+            self.alert_sender.send_error_alert()
+            return
         SV.state = State.BLOCKER_MOVING
         t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
