@@ -137,7 +137,7 @@ class GUI(object):
         res = requests.get(const.EXCHANGE_RATE_API).json()
         USD_per_BTC = float(res['last'])
         amount_usd = USD_per_BTC * amount
-        self.main_frame.pay_page.amount_due_usd.set("($%.6f)" % amount_usd)
+        self.main_frame.pay_page.amount_due_usd.set("($%.2f)" % amount_usd)
         self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
         self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
         self.main_frame.pay_page.time_parked.set("%.2f seconds" % time)
