@@ -2,6 +2,6 @@
 	"admin_email": "johnyunsupso@gmail.com",
 	"free_parking_limit": 5,
 	"payment_limit": 15,
-	"parking_rate": 0.00001,
+	"parking_rate": 0.000001,
 	"bitcoin_addr": "1F44zb39q6uRwkfDAHKTPqTFQQahSNoMdt"
 }
