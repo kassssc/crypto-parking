@@ -55,7 +55,7 @@ class CryptoParking(object):
         SV.threads['main_loop'] = threading.Thread(target=self.main_loop)
         SV.threads['main_loop'].start()
 
-        #self.sensors.init_interrupts()
+        self.sensors.init_interrupts()
 
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
@@ -80,7 +80,7 @@ class CryptoParking(object):
             except Exception:
                 pass
 
-        #sensors.gpio_cleanup
+        sensors.gpio_cleanup
         sys.exit(0)
 
     def main_loop(self):
