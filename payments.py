@@ -17,38 +17,59 @@ import shared as SV
 class Payments():
 
     def __init__(self):
+        self.api = const.BITCOIN_BASE_API + const.BITCOIN_ADDR
         self.times_checked = 0
-        self.t_check_timer = 0
 
     def check_for_payment(self):
-        with SV.lock:
-            payment_received = self.check_bitcoin_transaction(SV.amount_due)
-            if payment_received or self.times_checked > 60:
-                self.times_checked = 0
-                SV.amount_due = 0
+
+    #***************************************************************************
+        SV.E_checking_payment.clear()
+        print(SV.amount_due)
+        amount_satoshi = SV.amount_due * 100000000
+        print(amount_satoshi)
+        payment_received = self.check_bitcoin_transaction(amount_satoshi)
+        print(self.times_checked)
+        if payment_received or self.times_checked > 15:
+            SV.amount_due = 0
+            self.times_checked = 0
+            if payment_received:
                 SV.payment_received = True
             else:
-                self.times_checked += 1
-                SV.threads['check_payment'] = threading.Timer(
-                    2,
-                    self.check_for_payment
-                )
-                SV.threads['check_payment'].start()
+                SV.end_payment_window = True
+        else:
+            self.times_checked += 1
+            SV.threads['check_payment'] = threading.Timer(
+                2,
+                self.check_for_payment
+            )
+            SV.threads['check_payment'].start()
+        SV.E_checking_payment.set()
+    #***************************************************************************
 
     def check_bitcoin_transaction(self, amount):
-        res = requests.get(const.BITCOIN_BASE_API + const.BITCOIN_ADDR)
-        r_json = res.json()
-        latest_transaction = int(r_json['txs'][0]['out'][1]['value'])
-        transaction_time = int(r_json['txs'][0]['time'])
-        print("trans time %d" % transaction_time)
+
+        if SV.payment_received:
+            return True
+
+        res = requests.get(self.api).json()
+
+        transaction_amount = int(res['txs'][0]['out'][1]['value'])
+        transaction_time = int(res['txs'][0]['time'])
+
+        print("transaction time %d" % transaction_time)
         print("time threshold %d" % SV.transaction_age_threshold)
-        if transaction_time < SV.transaction_age_threshold:
-            print("transaction too old")
+
+        print("Payment due: %d" % amount)
+        print("transaction amount: %d" % transaction_amount)
+        print("diff: %d" % abs(transaction_amount - amount))
+
+        if transaction_time >= SV.transaction_age_threshold:
+            if transaction_amount >= (amount - 1000):
+                print("Payment received")
+                return True
+        else:
+            print("Payment not received")
             return False
-        print("amount is %d" % amount)
-        print("latest transaction is %d" % latest_transaction)
-        print("diff is %d" % abs(latest_transaction - amount))
-        return latest_transaction >= (amount - 1000)
 
 
 

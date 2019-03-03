@@ -8,10 +8,9 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 '''
 ################################################################################
 
-import threading
+import threading, qrcode, requests
 import tkinter as tk
 from PIL import ImageTk,Image
-import qrcode
 
 import shared as SV
 import const
@@ -24,7 +23,8 @@ class GUI(object):
 
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
-        self.window.geometry("480x320")
+        self.window.geometry("480x480")
+        #self.window.geometry("480x320")
         #self.window.attributes("-fullscreen", True)
 
         self.window.bind("<Escape>", self.quit)
@@ -109,26 +109,44 @@ class GUI(object):
     def confirm(self):
         SV.payment_received = True
 
-        #-----------------------------------------------------------------------
-        # THREAD: Show Payment Received Page
-        SV.threads['thank_you_page'] = threading.Timer(5, self.show_main_page)
-        SV.threads['thank_you_page'].start()
-
     def show_main_page(self):
+        self.set_usd_rate()
         self.main_frame.welcome_page.lift()
+        SV.E_thankyou_page.set()
+    #***************************************************************************
+
     def show_parked_page(self):
         self.main_frame.parked_page.lift()
+
     def show_pay_page(self):
         self.main_frame.pay_page.lift()
+
     def show_paid_page(self):
+    #***************************************************************************
+        SV.E_thankyou_page.clear()
         self.main_frame.paid_page.lift()
+        #-----------------------------------------------------------------------
+        # THREAD: Show Payment Received Page
+        SV.threads['thank_you_page'] = threading.Timer(2, self.show_main_page)
+        SV.threads['thank_you_page'].start()
 
     def set_pay_text(self, amount, time):
-        #self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
-        self.main_frame.pay_page.amount_due.set("%d satoshi" % amount)
-        self.main_frame.pay_page.time_parked.set("%.3f seconds" % time)
+        res = requests.get(const.EXCHANGE_RATE_API).json()
+        USD_per_BTC = float(res['last'])
+        amount_usd = USD_per_BTC * amount
+        self.main_frame.pay_page.amount_due_usd.set("($%.6f)" % amount_usd)
+        self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
+        self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
+        self.main_frame.pay_page.time_parked.set("%.2f seconds" % time)
 
-    def quit(self, instance):
+    def set_usd_rate(self):
+        res = requests.get(const.EXCHANGE_RATE_API).json()
+        USD_per_BTC = float(res['last'])
+        rate_float_hr = const.PARKING_RATE * USD_per_BTC * 3600.0
+        text = "($%.6f / hr)" % rate_float_hr
+        self.main_frame.welcome_page.parking_rate_usd.set(text)
+
+    def quit(self, instance=None):
         self.window.destroy()
         SV.KILL = True
 
@@ -173,7 +191,9 @@ class WelcomePage(Page):
 
         self.config(bg=const.COLOR_BG, pady=20)
         #parking_rate = "%.5f BTC / hour" % const.PARKING_RATE
-        parking_rate = "%d satoshi / second" % const.PARKING_RATE
+        parking_rate_hr = float(const.PARKING_RATE) * 3600.0
+        parking_rate = "%.5f BTC / hr" % parking_rate_hr
+        self.parking_rate_usd = tk.StringVar()
 
         labels = [
             tk.Label(
@@ -200,6 +220,13 @@ class WelcomePage(Page):
             tk.Label(
                 self,
                 text=parking_rate,
+                bg=const.COLOR_BG,
+                fg=const.COLOR_FG,
+                font=("Helvetica 18 bold")
+            ),
+            tk.Label(
+                self,
+                textvariable=self.parking_rate_usd,
                 bg=const.COLOR_BG,
                 fg=const.COLOR_FG,
                 font=("Helvetica 18 bold")
@@ -248,8 +275,8 @@ class PayPage(Page):
         Page.__init__(self, *args, **kwargs)
         self.amount_due = tk.StringVar()
         self.time_parked = tk.StringVar()
+        self.amount_due_usd = tk.StringVar()
         self.config(bg=const.COLOR_BG)
-
         #self.img = ImageTk.PhotoImage(file="./assets/QR.png")
         qr = qrcode.QRCode(
             version=2,
@@ -320,7 +347,14 @@ class PayPage(Page):
                 bg=const.COLOR_BG,
                 fg=const.COLOR_FG,
                 font=("Helvetica 15 bold")
-            )
+            ),
+            tk.Label(
+                text_frame,
+                textvariable=self.amount_due_usd,
+                bg=const.COLOR_BG,
+                fg=const.COLOR_FG,
+                font=("Helvetica 22 bold")
+            ),
         ]
 
         img_frame.pack(

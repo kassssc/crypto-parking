@@ -14,6 +14,7 @@ PARKING_RATE = 0
 #PARKING_RATE = 0.00077     # btc / hour
 BITCOIN_ADDR = None
 BITCOIN_BASE_API = 'https://blockchain.info/rawaddr/'
+EXCHANGE_RATE_API = 'https://www.bitstamp.net/api/ticker/'
 
 MOTOR1A = 15
 MOTOR1B = 13

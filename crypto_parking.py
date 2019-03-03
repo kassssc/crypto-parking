@@ -16,7 +16,7 @@ import shared as SV
 import const
 from gui import GUI
 from payments import Payments
-from sensor_handler import SensorHandler
+#from sensor_handler import SensorHandler
 
 class CryptoParking(object):
     ''' '''
@@ -36,7 +36,7 @@ class CryptoParking(object):
 
         self.gui = GUI()
         self.payments = Payments()
-        self.sensors = SensorHandler()
+        #self.sensors = SensorHandler()
 
         self.parking_start_time = None
         self.parking_end_time = None
@@ -54,7 +54,7 @@ class CryptoParking(object):
         SV.threads['main_loop'] = threading.Thread(target=self.main_loop)
         SV.threads['main_loop'].start()
 
-        self.sensors.init_interrupts()
+        #self.sensors.init_interrupts()
 
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
@@ -65,6 +65,8 @@ class CryptoParking(object):
         self.exit_gracefully()
 
     def exit_gracefully(self, sig=None, frame=None):
+
+        #self.gui.quit()
 
         # Break main loop
         SV.KILL = True
@@ -84,20 +86,23 @@ class CryptoParking(object):
         ''' Main application loop '''
 
         while True:
-            with SV.lock:
-                if SV.KILL:
-                    break
 
-                if SV.sensor_detected:
-                    self.proximity_interrupt_high()
-                else:
-                    self.proximity_interrupt_low()
+            if SV.KILL:
+                break
 
-                if SV.user_wants_to_pay:
-                    self.want_to_pay_interrupt()
+            if SV.sensor_detected:
+                self.proximity_interrupt_high()
+            else:
+                self.proximity_interrupt_low()
 
-                if SV.payment_received:
-                    self.payment_received_interrupt()
+            if SV.user_wants_to_pay:
+                self.want_to_pay_interrupt()
+
+            if SV.end_payment_window:
+                self.end_payment_window_interrupt()
+
+            if SV.payment_received:
+                self.payment_received_interrupt()
 
     #---------------------------------------------------------------------------
     # State Transitions
@@ -129,30 +134,29 @@ class CryptoParking(object):
     def free_parking_to_parked(self):
         ''' Detect that a car has officially parked in the spot '''
 
-        with SV.lock:
-            # Record the current time, it is when the parking starts
-            self.parking_start_time = time.time()
-            #print(f"started parking at {self.parking_start_time}")
+        # Record the current time, it is when the parking starts
+        self.parking_start_time = time.time()
+        #print(f"started parking at {self.parking_start_time}")
 
-            SV.state = State.BLOCKER_MOVING
-            t_blocker_up = threading.Thread(target=self.sensors.block)
-            t_blocker_up.start()
-            t_blocker_up.join()
+        SV.state = State.BLOCKER_MOVING
+        #t_blocker_up = threading.Thread(target=self.sensors.block)
+        #t_blocker_up.start()
+        #t_blocker_up.join()
 
-            # Go to parked page in GUI
-            self.gui.show_parked_page()
+        # Go to parked page in GUI
+        self.gui.show_parked_page()
 
-            SV.state = State.PARKED
-            print(SV.state)
+        SV.state = State.PARKED
+        print(SV.state)
 
     def parked_to_empty(self):
         ''' Detect case that system detected parking when there's nothing there '''
         self.gui.show_main_page()
         # ABNORMAL BEHAVIOR: call system admin
         SV.state = State.BLOCKER_MOVING
-        t_blocker_down = threading.Thread(target=self.sensors.lower)
-        t_blocker_down.start()
-        t_blocker_down.join()
+        #t_blocker_down = threading.Thread(target=self.sensors.lower)
+        #t_blocker_down.start()
+        #t_blocker_down.join()
 
         SV.state = State.EMPTY
         print(SV.state)
@@ -163,22 +167,12 @@ class CryptoParking(object):
         # Record the current time, it is when parking ends
         self.parking_end_time = time.time()
         print(self.parking_end_time)
-        SV.transaction_age_threshold = int(self.parking_end_time)
-        #print(f"started parking at {self.parking_end_time}")
-        total_parked_time = self.parking_end_time - self.parking_start_time
-        #payment_due = total_parked_time * const.PARKING_RATE / 3600.0
-        payment_due = int(total_parked_time * const.PARKING_RATE)
-        SV.amount_due = int(payment_due)
-        self.gui.set_pay_text(payment_due, total_parked_time)
-        #print(f"You parked for {total_parked_time:.3f} seconds")
-        #print(f"Payment due: {payment_due:.7f} btc")
-        #print(f"Please pay within {PAYMENT_LIMIT} seconds")
 
-        SV.threads['wait_for_payment'] = threading.Timer(
-            const.PAYMENT_LIMIT,
-            self.await_payment_to_parked
-        )
-        SV.threads['wait_for_payment'].start()
+        SV.transaction_age_threshold = int(self.parking_end_time)
+        total_parked_time = self.parking_end_time - self.parking_start_time
+        payment_due = total_parked_time * const.PARKING_RATE
+        SV.amount_due = payment_due
+        self.gui.set_pay_text(payment_due, total_parked_time)
 
         # Go to await payment in GUI
         self.gui.show_pay_page()
@@ -187,30 +181,45 @@ class CryptoParking(object):
         # THREAD: Check for payment
         # Calls itself again in a separate thread every second
         # Tries for 60 seconds
-        threading.Thread(target=self.payments.check_for_payment).start()
+        SV.threads['check_payment'] = threading.Thread(target=self.payments.check_for_payment)
+        SV.threads['check_payment'].start()
 
         SV.state = State.AWAIT_PAYMENT
         print(SV.state)
 
     def await_payment_to_parked(self):
         ''' Detect when user fails to pay within time limit '''
-        with SV.lock:
-            self.gui.show_parked_page()
-            SV.state = State.PARKED
-            print(SV.state)
+
+        self.gui.show_parked_page()
+
+        SV.end_payment_window = False
+        SV.state = State.PARKED
+        print(SV.state)
 
     def await_payment_to_free_parking(self):
         ''' Detect when user has successfully paid the amout due '''
-        SV.threads['wait_for_payment'].cancel()
+
         self.gui.show_paid_page()
 
-        #print(f"Payment received, you have {FREE_PARKING_LIMIT} seconds to leave")
-
         SV.state = State.BLOCKER_MOVING
-        t_blocker_down = threading.Thread(target=self.sensors.lower)
-        t_blocker_down.start()
-        t_blocker_down.join()
+        #t_blocker_down = threading.Thread(target=self.sensors.lower)
+        #t_blocker_down.start()
+        #t_blocker_down.join()
 
+    #***************************************************************************
+        SV.E_thankyou_page.wait()
+
+        #-----------------------------------------------------------------------
+        # THREAD: Free Parking Timer
+        # Fork a timer thread to keep track of free parking time
+        SV.threads['free_parking'] = threading.Timer(
+            const.FREE_PARKING_LIMIT,       # timeout
+            self.free_parking_to_parked     # callback
+        )
+        SV.threads['free_parking'].start()
+    #***************************************************************************
+
+        SV.payment_received = False
         SV.state = State.FREE_PARKING
         print(SV.state)
 
@@ -234,10 +243,19 @@ class CryptoParking(object):
         if SV.state == State.PARKED:
             self.parked_to_await_payment()
 
+    def end_payment_window_interrupt(self):
+        #***********************************************************************
+        SV.E_checking_payment.wait()
+        if SV.state == State.AWAIT_PAYMENT:
+            self.await_payment_to_parked()
+        #***********************************************************************
+
     def payment_received_interrupt(self):
-        SV.payment_received = False
+        #***********************************************************************
+        SV.E_checking_payment.wait()
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_free_parking()
+        #***********************************************************************
 
 class State(Enum):
     EMPTY = 0
