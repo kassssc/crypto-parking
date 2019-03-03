@@ -86,9 +86,9 @@ class SensorHandler:
 
     def block(self):
         print("Blocker coming up...")
-        pwm_up = GPIO.PWM(const.MOTOR1A, 5)
-        pwm_up.start(20)
-#       GPIO.output(const.MOTOR1A, GPIO.HIGH)
+        pwm_up = GPIO.PWM(const.MOTOR1E, 100)
+        pwm_up.start(70)
+        GPIO.output(const.MOTOR1A, GPIO.HIGH)
         GPIO.output(const.MOTOR1B, GPIO.LOW)
         GPIO.output(const.MOTOR1E, GPIO.HIGH)
         time.sleep(2)
@@ -99,10 +99,13 @@ class SensorHandler:
 
     def lower(self):
         print("Blocker lowering...")
+        pwm_down = GPIO.PWM(const.MOTOR1E, 100)
+        pwm_down.start(70)
         GPIO.output(const.MOTOR1A, GPIO.LOW)
         GPIO.output(const.MOTOR1B, GPIO.HIGH)
         GPIO.output(const.MOTOR1E, GPIO.HIGH)
         time.sleep(2)
 
+        pwm_down.stop()
         GPIO.output(const.MOTOR1E, GPIO.LOW)
         print("Blocker is now lowered")

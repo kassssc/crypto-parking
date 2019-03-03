@@ -14,13 +14,13 @@ from PIL import ImageTk,Image
 
 import shared as SV
 import const
+import alerts
 
 class GUI(object):
 
     def __init__(self):
         '''
         '''
-
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
         #self.window.geometry("480x480")
@@ -72,6 +72,8 @@ class GUI(object):
             bg=const.COLOR_BG,
             image=self.help_otw_btn_img
         )
+
+        self.alert_sender = alerts()
 
         self.confirm = tk.Button(
             self.frame,
@@ -152,6 +154,7 @@ class GUI(object):
 
     def call_admin(self):
         # send email
+        self.alert_sender.send_user_alert()
         self.call_admin_btn.pack_forget()
         self.help_otw_btn.pack()
 
