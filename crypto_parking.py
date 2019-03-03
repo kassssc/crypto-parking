@@ -80,7 +80,7 @@ class CryptoParking(object):
             except Exception:
                 pass
 
-        sensors.gpio_cleanup
+        sensors.gpio_cleanup()
         sys.exit(0)
 
     def main_loop(self):
