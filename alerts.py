@@ -15,7 +15,7 @@ class Alerts:
 
     def __init__(self):
         self.username = "cryptoparkingalerts@gmail.com"
-        self.pass = "cse237awi19"
+        self.password = "cse237awi19"
 
         self.admin_email = const.ADMIN_EMAIL
 
@@ -23,7 +23,7 @@ class Alerts:
         try:
             gmail = smtplib.SMTP("smtp.gmail.com", 587)
             gmail.starttls()
-            gmail.login(self.username, self.pass)
+            gmail.login(self.username, self.password)
             gmail.sendmail(self.username, self.admin_email, email_text)
             gmail.close()
         except Exception as ex:
