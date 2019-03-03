@@ -140,6 +140,9 @@ class CryptoParking(object):
         #print(f"started parking at {self.parking_start_time}")
 
         SV.state = State.BLOCKER_MOVING
+        if not self.sensors.check_obstruction(15):
+            self.alert_sender.send_error_alert()
+            return
         t_blocker_up = threading.Thread(target=self.sensors.block)
         t_blocker_up.start()
         t_blocker_up.join()
@@ -155,6 +158,9 @@ class CryptoParking(object):
         self.gui.show_main_page()
         # ABNORMAL BEHAVIOR: call system admin
         SV.state = State.BLOCKER_MOVING
+        if not self.sensors.check_obstruction(15):
+            self.alert_sender.send_error_alert()
+            return
         t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
         t_blocker_down.join()

@@ -1,4 +1,4 @@
-################################################################################
+###############################################################################
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: alerts.py
@@ -6,10 +6,11 @@ Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
            John So, jyso@ucsd.edu
 '''
-################################################################################
+###############################################################################
 
 import smtplib
 import const
+
 
 class Alerts:
 
@@ -27,7 +28,7 @@ class Alerts:
             gmail.sendmail(self.username, self.admin_email, email_text)
             gmail.close()
         except Exception as ex:
-            print("Could not send email " + str(type(ex)))
+            print("Could not send email " + str(ex))
 
     def send_user_alert(self):
         subject = "User Requesting Assistance"
@@ -42,11 +43,11 @@ A user at your automated parking space is requesting your presence.
 
     def send_error_alert(self):
         email_text = """\
-        From: %s
-        To: %s
-        Subject: Parking Space Error
+From: %s
+To: %s
+Subject: Parking Space Error
 
-        This automatic message is to alert you that aberrant behavior has been detected in your system.
-        You may need to check the system to guarantee correct execution.
-        """ % (self.username, self.admin_email)
+This automatic message is to alert you that aberrant behavior has been detected in your system.
+You may need to check the system to ensure correct execution.
+""" % (self.username, self.admin_email)
         self.send_email(email_text)

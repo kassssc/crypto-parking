@@ -84,28 +84,29 @@ class SensorHandler:
             self.t_poll_sensor = threading.Timer(0.005, self.read_sensor)
             self.t_poll_sensor.start()
 
+    def check_obstruction(self, timeout):
+        for i in range(timeout*1000):
+            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR) is 0:
+                return True
+            time.sleep(.001)
+        return False
+
     def block(self):
         print("Blocker coming up...")
-        pwm_up = GPIO.PWM(const.MOTOR1E, 100)
-        pwm_up.start(70)
         GPIO.output(const.MOTOR1A, GPIO.HIGH)
         GPIO.output(const.MOTOR1B, GPIO.LOW)
         GPIO.output(const.MOTOR1E, GPIO.HIGH)
-        time.sleep(2)
+        time.sleep(1)
 
-        pwm_up.stop()
         GPIO.output(const.MOTOR1E, GPIO.LOW)
         print("Spot is now blocked")
 
     def lower(self):
         print("Blocker lowering...")
-        pwm_down = GPIO.PWM(const.MOTOR1E, 100)
-        pwm_down.start(70)
         GPIO.output(const.MOTOR1A, GPIO.LOW)
         GPIO.output(const.MOTOR1B, GPIO.HIGH)
         GPIO.output(const.MOTOR1E, GPIO.HIGH)
-        time.sleep(2)
+        time.sleep(1)
 
-        pwm_down.stop()
         GPIO.output(const.MOTOR1E, GPIO.LOW)
         print("Blocker is now lowered")
