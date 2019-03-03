@@ -146,7 +146,7 @@ class GUI(object):
         res = requests.get(const.EXCHANGE_RATE_API).json()
         USD_per_BTC = float(res['last'])
         rate_float_hr = const.PARKING_RATE * USD_per_BTC * 3600.0
-        text = "($%.6f / hr)" % rate_float_hr
+        text = "($%.2f / hr)" % rate_float_hr
         self.main_frame.welcome_page.parking_rate_usd.set(text)
 
     def quit(self, instance=None):
