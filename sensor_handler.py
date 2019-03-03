@@ -31,7 +31,7 @@ class SensorHandler:
 
         GPIO.setup(const.PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-    def gpio_cleanup():
+    def gpio_cleanup(self):
         GPIO.cleanup()
 
     def init_interrupts(self):
