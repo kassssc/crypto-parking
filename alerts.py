@@ -32,12 +32,12 @@ class Alerts:
     def send_user_alert(self):
         subject = "User Requesting Assistance"
         email_text = """\
-        From: %s
-        To: %s
-        Subject: %s
+From: %s
+To: %s
+Subject: %s
 
-        A user at your automated parking space is requesting your presence.
-        """ % (self.username, self.admin_email, subject)
+A user at your automated parking space is requesting your presence.
+""" % (self.username, self.admin_email, subject)
         print(email_text)
         # self.send_email(email_text)
 
