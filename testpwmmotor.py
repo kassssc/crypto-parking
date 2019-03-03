@@ -20,6 +20,7 @@ pwm.start(30)
 sleep(2)
 pwm.stop()
 # GPIO.output(motor1e, GPIO.LOW)
+sleep(3)
 
 print("Going down")
 GPIO.output(motor1a, GPIO.LOW)
