@@ -8,6 +8,8 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 '''
 ################################################################################
 
+ADMIN_EMAIL = ""
+
 FREE_PARKING_LIMIT = 0      # seconds
 PAYMENT_LIMIT = 0           # seconds
 PARKING_RATE = 0

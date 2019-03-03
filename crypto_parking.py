@@ -26,6 +26,7 @@ class CryptoParking(object):
         with Path('./config.json').open('r') as f:
             config = json.load(f)
             try:
+                const.ADMIN_EMAIL = config['admin_email']
                 const.FREE_PARKING_LIMIT = config['free_parking_limit']
                 const.PAYMENT_LIMIT = config['payment_limit']
                 const.PARKING_RATE = config['parking_rate']
