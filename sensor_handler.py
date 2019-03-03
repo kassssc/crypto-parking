@@ -87,7 +87,7 @@ class SensorHandler:
 
     def check_obstruction(self, timeout):
         for i in range(timeout*1000):
-            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR) is 0:
+            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR) is GPIO.LOW:
                 return True
             time.sleep(.001)
         return False
