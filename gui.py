@@ -23,9 +23,9 @@ class GUI(object):
 
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
-        self.window.geometry("480x480")
+        #self.window.geometry("480x480")
         #self.window.geometry("480x320")
-        #self.window.attributes("-fullscreen", True)
+        self.window.attributes("-fullscreen", True)
 
         self.window.bind("<Escape>", self.quit)
         self.window.bind("x", self.quit)
@@ -92,9 +92,9 @@ class GUI(object):
             command=self.s0
         )
 
-        self.confirm.pack()
-        self.s1.pack()
-        self.s0.pack()
+        #self.confirm.pack()
+        #self.s1.pack()
+        #self.s0.pack()
 
     def run(self):
         self.show_main_page()
