@@ -30,6 +30,7 @@ class SensorHandler:
         self.t_poll_sensor = None
 
         GPIO.setup(const.PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(const.PIN_OBSTRUCTION_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     def gpio_cleanup(self):
         GPIO.cleanup()
