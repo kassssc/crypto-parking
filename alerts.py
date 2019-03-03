@@ -37,9 +37,9 @@ class Alerts:
         Subject: %s
 
         A user at your automated parking space is requesting your presence.
-        If you are not present in 1 hour, the space will automatically open.
         """ % (self.username, self.admin_email, subject)
-        self.send_email(email_text)
+        print(email_text)
+        # self.send_email(email_text)
 
     def send_error_alert(self):
         email_text = """\
