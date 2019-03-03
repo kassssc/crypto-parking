@@ -12,7 +12,7 @@ GPIO.setup(motor1b, GPIO.OUT)
 GPIO.setup(motor1e, GPIO.OUT)
 
 print("Going up")
-pwm = GPIO.PWM(motor1e, 100)
+pwm = GPIO.PWM(motor1e, 500)
 pwm.start(50)
 GPIO.output(motor1a, GPIO.HIGH)
 GPIO.output(motor1b, GPIO.LOW)
