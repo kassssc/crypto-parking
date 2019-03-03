@@ -38,8 +38,7 @@ Subject: %s
 
 A user at your automated parking space is requesting your presence.
 """ % (self.username, self.admin_email, subject)
-        print(email_text)
-        # self.send_email(email_text)
+        self.send_email(email_text)
 
     def send_error_alert(self):
         email_text = """\
