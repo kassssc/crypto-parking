@@ -14,7 +14,8 @@ from PIL import ImageTk,Image
 
 import shared as SV
 import const
-import alerts
+from alerts import Alerts
+
 
 class GUI(object):
 
@@ -73,7 +74,7 @@ class GUI(object):
             image=self.help_otw_btn_img
         )
 
-        self.alert_sender = alerts()
+        self.alert_sender = Alerts()
 
         self.confirm = tk.Button(
             self.frame,
