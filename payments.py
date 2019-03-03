@@ -53,23 +53,28 @@ class Payments():
 
         res = requests.get(self.api).json()
 
-        transaction_amount = int(res['txs'][0]['out'][1]['value'])
-        transaction_time = int(res['txs'][0]['time'])
+        transactions = res['txs'][0]['out']
+        for t in transactions:
+            if t['addr'] is const.BITCOIN_ADDR:
+                transaction_amount = int(t['value'])
+                transaction_time = int(t['time'])
 
-        print("transaction time %d" % transaction_time)
-        print("time threshold %d" % SV.transaction_age_threshold)
+                print("transaction time %d" % transaction_time)
+                print("time threshold %d" % SV.transaction_age_threshold)
 
-        print("Payment due: %d" % amount)
-        print("transaction amount: %d" % transaction_amount)
-        print("diff: %d" % abs(transaction_amount - amount))
+                print("Payment due: %d" % amount)
+                print("transaction amount: %d" % transaction_amount)
+                print("diff: %d" % abs(transaction_amount - amount))
 
-        if transaction_time >= SV.transaction_age_threshold:
-            if transaction_amount >= (amount - 1000):
-                print("Payment received")
-                return True
-        else:
-            print("Payment not received")
-            return False
+                if transaction_time >= SV.transaction_age_threshold:
+                    if transaction_amount >= (amount - 1000):
+                        print("Payment received")
+                        return True
+                else:
+                    print("Payment not received")
+                    return False
+
+        return False
 
 
 
