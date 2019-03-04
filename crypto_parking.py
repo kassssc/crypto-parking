@@ -266,11 +266,12 @@ class CryptoParking(object):
         while True:
             if self.sensors.no_obstruction():
                 return
-            if not email_sent and counter > timeout * 1000:
+            print(counter)
+            if not email_sent and counter > timeout * 100:
                 self.alert_sender.send_error_alert()
-                print("Sending email to admin")
                 email_sent = True
-            time.sleep(.001)
+            counter += 1
+            time.sleep(.01)
 
 
 class State(Enum):
