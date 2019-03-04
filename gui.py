@@ -134,10 +134,17 @@ class GUI(object):
         SV.threads['thank_you_page'].start()
 
     def set_pay_text(self, amount, time):
-        res = requests.get(const.EXCHANGE_RATE_API).json()
-        USD_per_BTC = float(res['last'])
-        amount_usd = USD_per_BTC * amount
-        self.main_frame.pay_page.amount_due_usd.set("($%.2f)" % amount_usd)
+
+        try:
+            res = requests.get(const.EXCHANGE_RATE_API).json()
+            USD_per_BTC = float(res['last'])
+            amount_usd = USD_per_BTC * amount
+            amount_usd_text = "($%.2f)" % amount_usd
+        except Exception:
+            print("API ERROR")
+            amount_usd_text = "Network error, can't fetch exchange rate"
+
+        self.main_frame.pay_page.amount_due_usd.set(amount_usd_text)
         self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
         self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
         self.main_frame.pay_page.time_parked.set("%.2f seconds" % time)

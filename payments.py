@@ -51,7 +51,11 @@ class Payments():
         if SV.payment_received:
             return True
 
-        res = requests.get(self.api).json()
+        try:
+            res = requests.get(self.api).json()
+        except Exception:
+            print("API ERROR")
+            return False
 
         transaction_time = int(res['txs'][0]['time'])
 
