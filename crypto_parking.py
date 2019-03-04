@@ -85,7 +85,7 @@ class CryptoParking(object):
                 thread.cancel()
                 thread.join()
             except Exception as e:
-                print(e)
+                pass
 
         self.sensors.gpio_cleanup()
         sys.exit(0)
@@ -149,7 +149,9 @@ class CryptoParking(object):
         SV.state = State.BLOCKER_MOVING
         # Wait until there is no obstruction before the blocker lifts
         self.block_execution_for_obstruction(10)
-        self.sensors.block()
+        t_blocker_up = threading.Thread(target=self.sensors.block)
+        t_blocker_up.start()
+        t_blocker_up.join()
 
         self.gui.show_parked_page()
 
@@ -163,7 +165,9 @@ class CryptoParking(object):
         SV.state = State.BLOCKER_MOVING
         # Wait until there is no obstruction before the blocker lowers
         self.block_execution_for_obstruction(10)
-        self.sensors.lower()
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
+        t_blocker_down.start()
+        t_blocker_down.join()
 
         self.gui.show_main_page()
 
@@ -214,7 +218,9 @@ class CryptoParking(object):
         # Wait until there is no obstruction before the blocker lowers
         self.block_execution_for_obstruction(10)
         SV.state = State.BLOCKER_MOVING
-        self.sensors.lower()
+        t_blocker_down = threading.Thread(target=self.sensors.lower)
+        t_blocker_down.start()
+        t_blocker_down.join()
 
     #***************************************************************************
         # Wait for the thank you page to finish showing
