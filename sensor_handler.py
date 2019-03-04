@@ -86,8 +86,8 @@ class SensorHandler:
             self.t_poll_sensor.start()
 
     # Returns True if there is no obstruction and false otherwise
-    def check_obstruction(self):
-        return not GPIO.input(const.PIN_OBSTRUCTION_SENSOR)
+    def no_obstruction(self):
+        return GPIO.input(const.PIN_OBSTRUCTION_SENSOR)
 
     def block(self):
         print("Blocker coming up...")
