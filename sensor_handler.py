@@ -33,6 +33,7 @@ class SensorHandler:
         GPIO.setup(const.PIN_OBSTRUCTION_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     def gpio_cleanup(self):
+        self.lower()
         GPIO.cleanup()
 
     def init_interrupts(self):

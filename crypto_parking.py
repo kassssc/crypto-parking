@@ -68,8 +68,6 @@ class CryptoParking(object):
     def exit_gracefully(self, sig=None, frame=None):
 
         #self.gui.quit()
-        # Lower blocker when exiting
-        self.parked_to_empty()
         # Break main loop
         SV.KILL = True
 
