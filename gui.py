@@ -140,8 +140,9 @@ class GUI(object):
             USD_per_BTC = float(res['last'])
             amount_usd = USD_per_BTC * amount
             amount_usd_text = "($%.2f)" % amount_usd
-        except (requests.exceptions.RequestException, ConnectionError):
+        except Exception as e:
             print("API ERROR")
+            print(e)
             amount_usd_text = "Network error, can't fetch exchange rate"
 
         self.main_frame.pay_page.amount_due_usd.set(amount_usd_text)
