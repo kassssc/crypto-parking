@@ -68,7 +68,6 @@ class CryptoParking(object):
     def exit_gracefully(self, sig=None, frame=None):
 
         #self.gui.quit()
-
         # Break main loop
         SV.KILL = True
 
@@ -140,9 +139,7 @@ class CryptoParking(object):
         #print(f"started parking at {self.parking_start_time}")
 
         SV.state = State.BLOCKER_MOVING
-        if not self.sensors.check_obstruction(15):
-            self.alert_sender.send_error_alert()
-            return
+        self.block_execution_for_obstruction(10)
         t_blocker_up = threading.Thread(target=self.sensors.block)
         t_blocker_up.start()
         t_blocker_up.join()
@@ -158,9 +155,7 @@ class CryptoParking(object):
         self.gui.show_main_page()
         # ABNORMAL BEHAVIOR: call system admin
         SV.state = State.BLOCKER_MOVING
-        if not self.sensors.check_obstruction(15):
-            self.alert_sender.send_error_alert()
-            return
+        self.block_execution_for_obstruction(10)
         t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
         t_blocker_down.join()
@@ -207,9 +202,7 @@ class CryptoParking(object):
         ''' Detect when user has successfully paid the amout due '''
 
         self.gui.show_paid_page()
-        if not self.sensors.check_obstruction(15):
-            self.alert_sender.send_error_alert()
-            return
+        self.block_execution_for_obstruction(10)
         SV.state = State.BLOCKER_MOVING
         t_blocker_down = threading.Thread(target=self.sensors.lower)
         t_blocker_down.start()
@@ -265,6 +258,20 @@ class CryptoParking(object):
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_free_parking()
         #***********************************************************************
+
+    def block_execution_for_obstruction(self, timeout):
+        email_sent = False
+        counter = 0
+        while True:
+            if self.sensors.no_obstruction():
+                return
+            print(counter)
+            if not email_sent and counter > timeout * 40:
+                self.gui.alert_sender.send_error_alert()
+                email_sent = True
+            counter += 1
+            time.sleep(.01)
+
 
 class State(Enum):
     EMPTY = 0
