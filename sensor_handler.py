@@ -85,12 +85,9 @@ class SensorHandler:
             self.t_poll_sensor = threading.Timer(0.005, self.read_sensor)
             self.t_poll_sensor.start()
 
-    def check_obstruction(self, timeout):
-        for i in range(timeout*1000):
-            if GPIO.input(const.PIN_OBSTRUCTION_SENSOR):
-                return True
-            time.sleep(.001)
-        return False
+    # Returns True if there is no obstruction and false otherwise
+    def check_obstruction(self):
+        return not GPIO.input(const.PIN_OBSTRUCTION_SENSOR)
 
     def block(self):
         print("Blocker coming up...")
