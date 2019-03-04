@@ -268,7 +268,7 @@ class CryptoParking(object):
                 return
             print(counter)
             if not email_sent and counter > timeout * 100:
-                self.alert_sender.send_error_alert()
+                self.gui.alert_sender.send_error_alert()
                 email_sent = True
             counter += 1
             time.sleep(.01)
