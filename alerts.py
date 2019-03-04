@@ -27,7 +27,7 @@ class Alerts:
             gmail.login(self.username, self.password)
             gmail.sendmail(self.username, self.admin_email, email_text)
             gmail.close()
-        except Exception as ex:
+        except smtplib.SMTPException as ex:
             print("Could not send email " + str(ex))
 
     def send_user_alert(self):

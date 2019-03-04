@@ -140,7 +140,7 @@ class GUI(object):
             USD_per_BTC = float(res['last'])
             amount_usd = USD_per_BTC * amount
             amount_usd_text = "($%.2f)" % amount_usd
-        except Exception:
+        except requests.exceptions.RequestException:
             print("API ERROR")
             amount_usd_text = "Network error, can't fetch exchange rate"
 
@@ -284,11 +284,12 @@ class ParkedPage(Page):
 class PayPage(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
+
         self.amount_due = tk.StringVar()
         self.time_parked = tk.StringVar()
         self.amount_due_usd = tk.StringVar()
         self.config(bg=const.COLOR_BG)
-        #self.img = ImageTk.PhotoImage(file="./assets/QR.png")
+
         qr = qrcode.QRCode(
             version=2,
             error_correction=qrcode.constants.ERROR_CORRECT_L,

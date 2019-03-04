@@ -23,6 +23,7 @@ class CryptoParking(object):
 
     def __init__(self):
 
+        # Open and load configuration data
         with Path('./config.json').open('r') as f:
             config = json.load(f)
             try:
@@ -43,10 +44,10 @@ class CryptoParking(object):
         self.parking_end_time = None
         SV.state = State.EMPTY
 
-
     def start(self):
         ''' Starts the main program '''
 
+        # Sigint will trigger a graceful exit
         signal.signal(signal.SIGINT, self.exit_gracefully)
 
         #-----------------------------------------------------------------------
@@ -55,19 +56,26 @@ class CryptoParking(object):
         SV.threads['main_loop'] = threading.Thread(target=self.main_loop)
         SV.threads['main_loop'].start()
 
+        # Initializes sensor interrupt on edge detection
         self.sensors.init_interrupts()
 
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
         # initialize tkinter GUI in the main thread
         # tkinter gets pissed when it is not in the main thread
-        self.gui.run()
+        try:
+            self.gui.run()
+        except RuntimeError as e:
+            print("Error in GUI")
+            print(e)
 
+        # Reached when GUI is terminated (via esc or X button)
         self.exit_gracefully()
+
+        # END PROGRAM
 
     def exit_gracefully(self, sig=None, frame=None):
 
-        #self.gui.quit()
         # Break main loop
         SV.KILL = True
 
@@ -76,8 +84,8 @@ class CryptoParking(object):
             try:
                 thread.cancel()
                 thread.join()
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
         self.sensors.gpio_cleanup()
         sys.exit(0)
@@ -134,17 +142,15 @@ class CryptoParking(object):
     def free_parking_to_parked(self):
         ''' Detect that a car has officially parked in the spot '''
 
-        # Record the current time, it is when the parking starts
+        # Record the current time as when the parking starts
         self.parking_start_time = time.time()
-        #print(f"started parking at {self.parking_start_time}")
 
+        # Lift the blocker
         SV.state = State.BLOCKER_MOVING
+        # Wait until there is no obstruction before the blocker lifts
         self.block_execution_for_obstruction(10)
-        t_blocker_up = threading.Thread(target=self.sensors.block)
-        t_blocker_up.start()
-        t_blocker_up.join()
+        self.sensors.block()
 
-        # Go to parked page in GUI
         self.gui.show_parked_page()
 
         SV.state = State.PARKED
@@ -152,13 +158,14 @@ class CryptoParking(object):
 
     def parked_to_empty(self):
         ''' Detect case that system detected parking when there's nothing there '''
-        self.gui.show_main_page()
-        # ABNORMAL BEHAVIOR: call system admin
+
+        # Lower the blocker
         SV.state = State.BLOCKER_MOVING
+        # Wait until there is no obstruction before the blocker lowers
         self.block_execution_for_obstruction(10)
-        t_blocker_down = threading.Thread(target=self.sensors.lower)
-        t_blocker_down.start()
-        t_blocker_down.join()
+        self.sensors.lower()
+
+        self.gui.show_main_page()
 
         SV.state = State.EMPTY
         print(SV.state)
@@ -166,7 +173,7 @@ class CryptoParking(object):
     def parked_to_await_payment(self):
         ''' Detect when user expresses desire to pay for parking '''
 
-        # Record the current time, it is when parking ends
+        # Record the current time as when parking ends
         self.parking_end_time = time.time()
         print(self.parking_end_time)
 
@@ -176,14 +183,14 @@ class CryptoParking(object):
         SV.amount_due = payment_due
         self.gui.set_pay_text(payment_due, total_parked_time)
 
-        # Go to await payment in GUI
         self.gui.show_pay_page()
 
         #-----------------------------------------------------------------------
         # THREAD: Check for payment
-        # Calls itself again in a separate thread every second
-        # Tries for 60 seconds
-        SV.threads['check_payment'] = threading.Thread(target=self.payments.check_for_payment)
+        # Calls itself again in a separate thread every 2 seconds
+        SV.threads['check_payment'] = threading.Thread(
+            target=self.payments.check_for_payment
+        )
         SV.threads['check_payment'].start()
 
         SV.state = State.AWAIT_PAYMENT
@@ -194,6 +201,7 @@ class CryptoParking(object):
 
         self.gui.show_parked_page()
 
+        # Reset end payment window flag
         SV.end_payment_window = False
         SV.state = State.PARKED
         print(SV.state)
@@ -202,13 +210,14 @@ class CryptoParking(object):
         ''' Detect when user has successfully paid the amout due '''
 
         self.gui.show_paid_page()
+
+        # Wait until there is no obstruction before the blocker lowers
         self.block_execution_for_obstruction(10)
         SV.state = State.BLOCKER_MOVING
-        t_blocker_down = threading.Thread(target=self.sensors.lower)
-        t_blocker_down.start()
-        t_blocker_down.join()
+        self.sensors.lower()
 
     #***************************************************************************
+        # Wait for the thank you page to finish showing
         SV.E_thankyou_page.wait()
 
         #-----------------------------------------------------------------------
@@ -219,8 +228,8 @@ class CryptoParking(object):
             self.free_parking_to_parked     # callback
         )
         SV.threads['free_parking'].start()
-    #***************************************************************************
 
+        # Reset payment received flag
         SV.payment_received = False
         SV.state = State.FREE_PARKING
         print(SV.state)
@@ -233,7 +242,6 @@ class CryptoParking(object):
             self.free_parking_to_empty()
 
         elif SV.state == State.PARKED:
-            # shouldn't happen
             self.parked_to_empty()
 
     def proximity_interrupt_high(self):
@@ -250,14 +258,12 @@ class CryptoParking(object):
         SV.E_checking_payment.wait()
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_parked()
-        #***********************************************************************
 
     def payment_received_interrupt(self):
         #***********************************************************************
         SV.E_checking_payment.wait()
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_free_parking()
-        #***********************************************************************
 
     def block_execution_for_obstruction(self, timeout):
         email_sent = False
@@ -265,7 +271,7 @@ class CryptoParking(object):
         while True:
             if self.sensors.no_obstruction():
                 return
-            print(counter)
+
             if not email_sent and counter > timeout * 40:
                 self.gui.alert_sender.send_error_alert()
                 email_sent = True

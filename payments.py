@@ -29,7 +29,7 @@ class Payments():
         print(amount_satoshi)
         payment_received = self.check_bitcoin_transaction(amount_satoshi)
         print(self.times_checked)
-        if payment_received or self.times_checked > 15:
+        if payment_received or self.times_checked >= 30:
             SV.amount_due = 0
             self.times_checked = 0
             if payment_received:
@@ -53,7 +53,7 @@ class Payments():
 
         try:
             res = requests.get(self.api).json()
-        except Exception:
+        except requests.exceptions.RequestException:
             print("API ERROR")
             return False
 
@@ -65,9 +65,7 @@ class Payments():
         if transaction_time >= SV.transaction_age_threshold:
             transactions = res['txs'][0]['out']
             for t in transactions:
-                print(t['addr'])
                 if t['addr'] == const.BITCOIN_ADDR:
-                    print("addr matched!!")
                     transaction_amount = int(t['value'])
 
                     print("Payment due: %d" % amount)
