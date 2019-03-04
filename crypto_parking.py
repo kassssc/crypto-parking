@@ -267,7 +267,7 @@ class CryptoParking(object):
             if self.sensors.no_obstruction():
                 return
             print(counter)
-            if not email_sent and counter > timeout * 100:
+            if not email_sent and counter > timeout * 40:
                 self.gui.alert_sender.send_error_alert()
                 email_sent = True
             counter += 1
