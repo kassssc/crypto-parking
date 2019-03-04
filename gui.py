@@ -140,7 +140,7 @@ class GUI(object):
             USD_per_BTC = float(res['last'])
             amount_usd = USD_per_BTC * amount
             amount_usd_text = "($%.2f)" % amount_usd
-        except Exception as e:
+        except (requests.exceptions.RequestException, ConnectionError) as e:
             print("API ERROR")
             print(e)
             amount_usd_text = "Network error, can't fetch exchange rate"
@@ -151,10 +151,16 @@ class GUI(object):
         self.main_frame.pay_page.time_parked.set("%.2f seconds" % time)
 
     def set_usd_rate(self):
-        res = requests.get(const.EXCHANGE_RATE_API).json()
-        USD_per_BTC = float(res['last'])
-        rate_float_hr = const.PARKING_RATE * USD_per_BTC * 3600.0
-        text = "($%.2f / hr)" % rate_float_hr
+
+        try:
+            res = requests.get(const.EXCHANGE_RATE_API).json()
+            USD_per_BTC = float(res['last'])
+            rate_float_hr = const.PARKING_RATE * USD_per_BTC * 3600.0
+            text = "($%.2f / hr)" % rate_float_hr
+        except (requests.exceptions.RequestException, ConnectionError) as e:
+            print(e)
+            text = "Network error, can't fetch exchange rate"
+
         self.main_frame.welcome_page.parking_rate_usd.set(text)
 
     def quit(self, instance=None):
