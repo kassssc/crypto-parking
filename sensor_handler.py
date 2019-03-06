@@ -2,7 +2,6 @@
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: sensor_handler.py
-Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
            John So, jyso@ucsd.edu
 '''
@@ -15,10 +14,16 @@ import time
 import shared as SV
 import const
 
-
 class SensorHandler:
+    '''
+        Sensor module, handles all sensor related operations
+        Has the right to set the parking sensor detected flag
+        Responsible for controlling the blocker
+    '''
 
     def __init__(self):
+        ''' Set up GPIO and values '''
+
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(const.MOTOR1A, GPIO.OUT)
         GPIO.setup(const.MOTOR1B, GPIO.OUT)
@@ -33,18 +38,24 @@ class SensorHandler:
         GPIO.setup(const.PIN_OBSTRUCTION_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     def gpio_cleanup(self):
+        ''' lower blocker and clean GPIO, called when system exits '''
+
         self.lower()
         GPIO.cleanup()
 
     def init_interrupts(self):
+        ''' Add rising and falling edge detection on sensor with interrupts '''
         GPIO.add_event_detect(
             const.PIN_PROXIMITY_SENSOR,
             GPIO.BOTH,
-            callback=self.wake_detect   # threaded callback
+            callback=self.wake_detect
         )
 
     def wake_detect(self, instance):
         '''
+            Callback for when an edge is detected on the parking sensor
+            Wakes up the sensor module
+            Disables the edge detection and goes in to polling mode
         '''
 
         print("Detected rising/falling edge, waking up")
@@ -53,6 +64,7 @@ class SensorHandler:
         self.read_sensor()
 
     def read_sensor(self):
+        ''' Routine to read and process the value from the sensor '''
 
         # Add current reading to buffer array
         self.buffer[self.counter] = 0 if GPIO.input(const.PIN_PROXIMITY_SENSOR) else 1
@@ -91,6 +103,8 @@ class SensorHandler:
         return GPIO.input(const.PIN_OBSTRUCTION_SENSOR)
 
     def block(self):
+        ''' Raises the blocker '''
+
         print("Blocker coming up...")
         GPIO.output(const.MOTOR1A, GPIO.HIGH)
         GPIO.output(const.MOTOR1B, GPIO.LOW)
@@ -101,6 +115,8 @@ class SensorHandler:
         print("Spot is now blocked")
 
     def lower(self):
+        ''' Lowers the blocker '''
+
         print("Blocker lowering...")
         GPIO.output(const.MOTOR1A, GPIO.LOW)
         GPIO.output(const.MOTOR1B, GPIO.HIGH)

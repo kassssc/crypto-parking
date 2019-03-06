@@ -2,7 +2,6 @@
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: main.py
-Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
            John So, jyso@ucsd.edu
 '''
@@ -13,8 +12,11 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 from crypto_parking import CryptoParking
 
 def main():
+		''' main method of program '''
+
     print("Crypto Parking Lot")
 
+    # instantiate application and start
     app = CryptoParking()
     app.start()
 

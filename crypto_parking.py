@@ -2,7 +2,6 @@
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: crypto_parking.py
-Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
            John So, jyso@ucsd.edu
 '''
@@ -19,9 +18,10 @@ from payments import Payments
 from sensor_handler import SensorHandler
 
 class CryptoParking(object):
-    ''' '''
+    ''' Main application class '''
 
     def __init__(self):
+        ''' Instantiates the application '''
 
         # Open and load configuration data
         with Path('./config.json').open('r') as f:
@@ -36,12 +36,15 @@ class CryptoParking(object):
                 print("Bad config file")
                 sys.exit(0)
 
+        # Instantiate modules
         self.gui = GUI()
         self.payments = Payments()
         self.sensors = SensorHandler()
 
         self.parking_start_time = None
         self.parking_end_time = None
+
+        # Initial State
         SV.state = State.EMPTY
 
     def start(self):
@@ -52,7 +55,7 @@ class CryptoParking(object):
 
         #-----------------------------------------------------------------------
         # THREAD: Main Polling Loop
-        # Run the main program loop on a second thread
+        # Run the main program loop on a separate thread
         SV.threads['main_loop'] = threading.Thread(target=self.main_loop)
         SV.threads['main_loop'].start()
 
@@ -62,7 +65,6 @@ class CryptoParking(object):
         #-----------------------------------------------------------------------
         # MAIN THREAD: tkinter GUI
         # initialize tkinter GUI in the main thread
-        # tkinter gets pissed when it is not in the main thread
         try:
             self.gui.run()
         except RuntimeError as e:
@@ -75,6 +77,11 @@ class CryptoParking(object):
         # END PROGRAM
 
     def exit_gracefully(self, sig=None, frame=None):
+        '''
+            Exits the program gracefully
+            Wait for all running threads to complete
+            Cancels all timer with threaded callbacks
+        '''
 
         # Break main loop
         SV.KILL = True
@@ -91,32 +98,42 @@ class CryptoParking(object):
         sys.exit(0)
 
     def main_loop(self):
-        ''' Main application loop '''
+        '''
+            Main application loop
+            Continuously polls flags and react accordingly
+        '''
 
         while True:
 
+            # Kill flag will break out of the main loop
             if SV.KILL:
                 break
 
+            # Parking spot infrared sensor, flag set by sensors module
+            # Parking sensor gives a 1
             if SV.sensor_detected:
-                self.proximity_interrupt_high()
+                self.proximity_high()
+            # Parking sensor gives a 0
             else:
-                self.proximity_interrupt_low()
+                self.proximity_low()
 
+            # User wants to pay flag, set by GUI
             if SV.user_wants_to_pay:
-                self.want_to_pay_interrupt()
+                self.want_to_pay()
 
+            # End payment window flag, set by payments module
             if SV.end_payment_window:
-                self.end_payment_window_interrupt()
+                self.end_payment_window()
 
+            # Payment received flag, set by payments module
             if SV.payment_received:
-                self.payment_received_interrupt()
+                self.payment_received()
 
     #---------------------------------------------------------------------------
     # State Transitions
     #---------------------------------------------------------------------------
     def empty_to_free_parking(self):
-        ''' Detects that a car entered the spot '''
+        ''' Fires when something is detected in the parking spot '''
 
         #-----------------------------------------------------------------------
         # THREAD: Free Parking Timer
@@ -131,7 +148,7 @@ class CryptoParking(object):
         print(SV.state)
 
     def free_parking_to_empty(self):
-        ''' Detects that a car left the spot '''
+        ''' Fires when nothing is detected in the parking spot anymore '''
 
         # Cancels the timer because a car is no longer detected
         SV.threads['free_parking'].cancel()
@@ -140,7 +157,7 @@ class CryptoParking(object):
         print(SV.state)
 
     def free_parking_to_parked(self):
-        ''' Detect that a car has officially parked in the spot '''
+        ''' Fires when a car has parked in the spot for longer than the free parking time '''
 
         # Record the current time as when the parking starts
         self.parking_start_time = time.time()
@@ -159,7 +176,13 @@ class CryptoParking(object):
         print(SV.state)
 
     def parked_to_empty(self):
-        ''' Detect case that system detected parking when there's nothing there '''
+        '''
+            When the system is in parked state, but sensor reads a 0
+            Can't happen when a car is in the spot (car physically cannot leave)
+            This is for other stuff that blocked the sensor for long enough and
+            then leaves, ex. a dog sleeping on it
+            Blocker should be lowered
+        '''
 
         # Lower the blocker
         SV.state = State.BLOCKER_MOVING
@@ -175,7 +198,7 @@ class CryptoParking(object):
         print(SV.state)
 
     def parked_to_await_payment(self):
-        ''' Detect when user expresses desire to pay for parking '''
+        ''' Fires when the pay button is pressed by the user '''
 
         # Record the current time as when parking ends
         self.parking_end_time = time.time()
@@ -201,7 +224,7 @@ class CryptoParking(object):
         print(SV.state)
 
     def await_payment_to_parked(self):
-        ''' Detect when user fails to pay within time limit '''
+        ''' Fires when payment is not received in given window '''
 
         self.gui.show_parked_page()
 
@@ -211,7 +234,7 @@ class CryptoParking(object):
         print(SV.state)
 
     def await_payment_to_free_parking(self):
-        ''' Detect when user has successfully paid the amout due '''
+        ''' Fires when correct payment has been received '''
 
         self.gui.show_paid_page()
 
@@ -241,37 +264,49 @@ class CryptoParking(object):
         print(SV.state)
 
     #---------------------------------------------------------------------------
-    # Software "Interrupt" Handlers
+    # Flag handlers
     #---------------------------------------------------------------------------
-    def proximity_interrupt_low(self):
+    def proximity_low(self):
+        ''' Handles parking sensor flag '''
         if SV.state == State.FREE_PARKING:
             self.free_parking_to_empty()
 
         elif SV.state == State.PARKED:
             self.parked_to_empty()
 
-    def proximity_interrupt_high(self):
+    def proximity_high(self):
+        ''' Handles parking sensor flag '''
         if SV.state == State.EMPTY:
             self.empty_to_free_parking()
 
-    def want_to_pay_interrupt(self):
+    def want_to_pay(self):
+        ''' Handles user wants to pay flag '''
         SV.user_wants_to_pay = False
         if SV.state == State.PARKED:
             self.parked_to_await_payment()
 
-    def end_payment_window_interrupt(self):
+    def end_payment_window(self):
+        ''' Handles end payment window flag '''
         #***********************************************************************
         SV.E_checking_payment.wait()
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_parked()
 
-    def payment_received_interrupt(self):
+    def payment_received(self):
+        ''' Handles payment received flag '''
         #***********************************************************************
         SV.E_checking_payment.wait()
         if SV.state == State.AWAIT_PAYMENT:
             self.await_payment_to_free_parking()
 
     def block_execution_for_obstruction(self, timeout):
+        '''
+            Enters a loop and does not break until the blocker is no longer
+            obstructed. Sends an email to notify system admin after a set
+            amount of time passed
+            System will get stuck here until blocker could move
+        '''
+
         email_sent = False
         counter = 0
         while True:
@@ -286,9 +321,10 @@ class CryptoParking(object):
 
 
 class State(Enum):
+    ''' System states '''
+
     EMPTY = 0
     FREE_PARKING = 1
     PARKED = 2
     AWAIT_PAYMENT = 3
-    PAID = 4
-    BLOCKER_MOVING = 5
+    BLOCKER_MOVING = 4
