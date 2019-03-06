@@ -2,51 +2,41 @@
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: gui.py
-Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
              John So, jyso@ucsd.edu
 '''
 ################################################################################
 
-import threading
+import threading, qrcode, requests
 import tkinter as tk
 from PIL import ImageTk,Image
-import qrcode
 
 import shared as SV
 import const
+from alerts import Alerts
 
 class GUI(object):
+    '''
+        GUI module of our application
+        Responsible for construction of the gui and handling interactions\
+        Has the right to set the user wants to pay flag
+    '''
 
     def __init__(self):
-        '''
-        '''
+        ''' Constructs the GUI '''
 
         self.window = tk.Tk()
         self.window.title("Crypto Parking")
-        self.window.geometry("480x320")
-        #self.window.attributes("-fullscreen", True)
+        self.window.attributes("-fullscreen", True)
 
+        # Bind global keyboard commands
         self.window.bind("<Escape>", self.quit)
-        self.window.bind("x", self.quit)
-        self.window.config(bg=const.COLOR_BG)
 
-        #self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
+        self.window.config(bg=const.COLOR_BG)
         self.main_frame = MainFrame(self.window)
         self.main_frame.pack(side="top", fill="both", expand=True)
 
-        # Dummy buttons simulate input
-        self.frame = tk.Frame(
-            self.window,
-            bg=const.COLOR_BG
-        )
-        self.frame.pack(
-            side="bottom",
-            fill="x",
-            expand=False,
-            pady=15
-        )
-
+        # Call admin for help button
         self.call_admin_btn_img = ImageTk.PhotoImage(file="./assets/call_admin_btn.png")
         self.call_admin_btn = tk.Button(
             self.frame,
@@ -61,6 +51,7 @@ class GUI(object):
         )
         self.call_admin_btn.pack()
 
+        # Call admin for help button (pressed)
         self.help_otw_btn_img = ImageTk.PhotoImage(file="./assets/help_otw.png")
         self.help_otw_btn = tk.Button(
             self.frame,
@@ -73,7 +64,23 @@ class GUI(object):
             image=self.help_otw_btn_img
         )
 
-        '''self.confirm = tk.Button(
+    # Instantiate alert sender module
+        self.alert_sender = Alerts()
+
+    #===========================================================================
+    # CODE USED FOR TESTING
+        # Dummy buttons simulate input
+        '''self.frame = tk.Frame(
+            self.window,
+            bg=const.COLOR_BG
+        )
+        self.frame.pack(
+            side="bottom",
+            fill="x",
+            expand=False,
+            pady=15
+        )
+        self.confirm = tk.Button(
             self.frame,
             text="Confirm paid",
             width=16,
@@ -91,14 +98,9 @@ class GUI(object):
             width=16,
             command=self.s0
         )
-
-        self.confirm.pack()
-        self.s1.pack()
-        self.s0.pack()'''
-
-    def run(self):
-        self.show_main_page()
-        self.window.mainloop()
+        #self.confirm.pack()
+        #self.s1.pack()
+        #self.s0.pack()
 
     def s1(self):
         SV.sensor_detected = True
@@ -108,34 +110,118 @@ class GUI(object):
 
     def confirm(self):
         SV.payment_received = True
+    '''
+    # CODE USED FOR TESTING
+    #===========================================================================
 
-        #-----------------------------------------------------------------------
-        # THREAD: Show Payment Received Page
-        SV.threads['thank_you_page'] = threading.Timer(5, self.show_main_page)
-        SV.threads['thank_you_page'].start()
+    def run(self):
+        ''' Runs the GUI '''
+
+        self.show_main_page()
+        self.window.mainloop()
 
     def show_main_page(self):
+        ''' Switch to main page '''
+
+        # set the rate info in USD using exchanghe rate API
+        self.set_usd_rate()
         self.main_frame.welcome_page.lift()
+
+        # in case when main page is shown after the thank you page expires
+        # will unblock execution of state transition from await payment to
+        # free parking in main loop
+        SV.E_thankyou_page.set()
+    #***************************************************************************
+
     def show_parked_page(self):
+        ''' Switch to parked page '''
         self.main_frame.parked_page.lift()
+
     def show_pay_page(self):
+        ''' Switch to pay page '''
         self.main_frame.pay_page.lift()
+
     def show_paid_page(self):
+        ''' Switch to thank you page '''
+    #***************************************************************************
+        # Block execution of state transition from await payment to
+        # free parking in main loop to wait for thank you page to expire
+        SV.E_thankyou_page.clear()
         self.main_frame.paid_page.lift()
 
-    def set_pay_text(self, amount, time):
-        self.main_frame.pay_page.amount_due.set("%.5f BTC" % amount)
-        self.main_frame.pay_page.time_parked.set("%.3f seconds" % time)
+        #-----------------------------------------------------------------------
+        # THREAD: Show main page again after a set time
+        SV.threads['thank_you_page'] = threading.Timer(2, self.show_main_page)
+        SV.threads['thank_you_page'].start()
 
-    def quit(self, instance):
+    def set_pay_text(self, amount, time):
+        '''
+            Sets the amount due information in the pay page
+            Sets the text of the payment due in USD using exchange rate API
+            amount: payment due in BTC
+            time: total time parked in seconds
+        '''
+
+        # Get exchange rate from BTC to USD from API
+        try:
+            # Call API
+            res = requests.get(const.EXCHANGE_RATE_API).json()
+            # Get relevant information from response
+            USD_per_BTC = float(res['last'])
+            # calculate the amount due in USD
+            amount_usd = USD_per_BTC * amount
+            amount_usd_text = "($%.2f)" % amount_usd
+
+        # If network / API is not available, show error test on GUI
+        except (requests.exceptions.RequestException, ConnectionError) as e:
+            print("API ERROR")
+            print(e)
+            amount_usd_text = "Network error, can't fetch exchange rate"
+
+        self.main_frame.pay_page.amount_due_usd.set(amount_usd_text)
+        self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
+        self.main_frame.pay_page.amount_due.set("%.6f BTC" % amount)
+        self.main_frame.pay_page.time_parked.set("%.2f seconds" % time)
+
+    def set_usd_rate(self):
+        ''' Sets the parking rate in USD text using exchange rate from API '''
+
+        try:
+            # Call API
+            res = requests.get(const.EXCHANGE_RATE_API).json()
+            # Get relevant info from response
+            USD_per_BTC = float(res['last'])
+            # Conversion
+            rate_float_hr = const.PARKING_RATE * USD_per_BTC * 3600.0
+            text = "($%.2f / hr)" % rate_float_hr
+
+        # If network / API is not available, show error test on GUI
+        except (requests.exceptions.RequestException, ConnectionError) as e:
+            print(e)
+            text = "Network error, can't fetch exchange rate"
+
+        self.main_frame.welcome_page.parking_rate_usd.set(text)
+
+    def quit(self, instance=None):
+        ''' Destroys GUI to quit application, sets flag to break main loop '''
+
         self.window.destroy()
         SV.KILL = True
 
     def call_admin(self):
-        # send email
+        '''
+            Uses the alerts module to call admin in case user needs assistance
+            Also changes the button appearance to give user feedback that
+            admin has been notified
+            When the appearance is changed, button taps will not send
+            notification again
+        '''
+
+        self.alert_sender.send_user_alert()
         self.call_admin_btn.pack_forget()
         self.help_otw_btn.pack()
 
+        # After a set time, revert the appearance of the button
         SV.threads['help_btn'] = threading.Timer(
             10,
             self.revert_call_admin_btn
@@ -143,6 +229,8 @@ class GUI(object):
         SV.threads['help_btn'].start()
 
     def revert_call_admin_btn(self):
+        ''' Reverts the call admin button appearnce '''
+
         self.help_otw_btn.pack_forget()
         self.call_admin_btn.pack()
 
@@ -171,7 +259,9 @@ class WelcomePage(Page):
         Page.__init__(self, *args, **kwargs)
 
         self.config(bg=const.COLOR_BG, pady=20)
-        parking_rate = "%.5f BTC / hour" % const.PARKING_RATE
+        parking_rate_hr = float(const.PARKING_RATE) * 3600.0
+        parking_rate = "%.5f BTC / hr" % parking_rate_hr
+        self.parking_rate_usd = tk.StringVar()
 
         labels = [
             tk.Label(
@@ -198,6 +288,13 @@ class WelcomePage(Page):
             tk.Label(
                 self,
                 text=parking_rate,
+                bg=const.COLOR_BG,
+                fg=const.COLOR_FG,
+                font=("Helvetica 18 bold")
+            ),
+            tk.Label(
+                self,
+                textvariable=self.parking_rate_usd,
                 bg=const.COLOR_BG,
                 fg=const.COLOR_FG,
                 font=("Helvetica 18 bold")
@@ -244,11 +341,14 @@ class ParkedPage(Page):
 class PayPage(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
+
+        # Init dynamic variables
         self.amount_due = tk.StringVar()
         self.time_parked = tk.StringVar()
+        self.amount_due_usd = tk.StringVar()
         self.config(bg=const.COLOR_BG)
 
-        #self.img = ImageTk.PhotoImage(file="./assets/QR.png")
+        # Construct QR code image from bitcoin address string
         qr = qrcode.QRCode(
             version=2,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -318,7 +418,14 @@ class PayPage(Page):
                 bg=const.COLOR_BG,
                 fg=const.COLOR_FG,
                 font=("Helvetica 15 bold")
-            )
+            ),
+            tk.Label(
+                text_frame,
+                textvariable=self.amount_due_usd,
+                bg=const.COLOR_BG,
+                fg=const.COLOR_FG,
+                font=("Helvetica 22 bold")
+            ),
         ]
 
         img_frame.pack(

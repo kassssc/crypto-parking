@@ -2,7 +2,6 @@
 '''
 Crypto Parking: Automated bitcoin parking lot
 File name: sensor_handler.py
-Description:
 Author(s): Kass Chupongstimun, kchupong@ucsd.edu
            John So, jyso@ucsd.edu
 '''
@@ -13,55 +12,70 @@ import RPi.GPIO as GPIO
 import time
 
 import shared as SV
-from const import *
+import const
 
 class SensorHandler:
+    '''
+        Sensor module, handles all sensor related operations
+        Has the right to set the parking sensor detected flag
+        Responsible for controlling the blocker
+    '''
 
     def __init__(self):
+        ''' Set up GPIO and values '''
+
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(MOTOR1A, GPIO.OUT)
-        GPIO.setup(MOTOR1B, GPIO.OUT)
-        GPIO.setup(MOTOR1E, GPIO.OUT)
+        GPIO.setup(const.MOTOR1A, GPIO.OUT)
+        GPIO.setup(const.MOTOR1B, GPIO.OUT)
+        GPIO.setup(const.MOTOR1E, GPIO.OUT)
 
         self.counter = 0
         self.stablize_counter = 0
-        self.buffer = np.zeros(BUFFER_LEN)
+        self.buffer = np.zeros(const.BUFFER_LEN)
         self.sensor_val = False
-        self.t_poll_sensor = None
 
-        GPIO.setup(PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(const.PIN_PROXIMITY_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(const.PIN_OBSTRUCTION_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-    def gpio_cleanup():
+    def gpio_cleanup(self):
+        ''' lower blocker and clean GPIO, called when system exits '''
+
+        self.lower()
         GPIO.cleanup()
 
     def init_interrupts(self):
+        ''' Add rising and falling edge detection on sensor with interrupts '''
         GPIO.add_event_detect(
-            PIN_PROXIMITY_SENSOR,
+            const.PIN_PROXIMITY_SENSOR,
             GPIO.BOTH,
-            callback=self.wake_detect   # threaded callback
+            callback=self.wake_detect
         )
 
     def wake_detect(self, instance):
         '''
+            Callback for when an edge is detected on the parking sensor
+            Wakes up the sensor module
+            Disables the edge detection and goes in to polling mode
         '''
 
         print("Detected rising/falling edge, waking up")
-        print(GPIO.input(PIN_PROXIMITY_SENSOR))
-        GPIO.remove_event_detect(PIN_PROXIMITY_SENSOR)  # disable interrupts
+        print(GPIO.input(const.PIN_PROXIMITY_SENSOR))
+        GPIO.remove_event_detect(const.PIN_PROXIMITY_SENSOR)  # disable interrupts
         self.read_sensor()
 
     def read_sensor(self):
+        ''' Routine to read and process the value from the sensor '''
 
         # Add current reading to buffer array
-        self.buffer[self.counter] = 0 if GPIO.input(PIN_PROXIMITY_SENSOR) else 1
+        self.buffer[self.counter] = 0 if GPIO.input(const.PIN_PROXIMITY_SENSOR) else 1
         # Increment counter, loop back to first idx in end of buffer
-        self.counter = (self.counter + 1) % BUFFER_LEN
+        self.counter = (self.counter + 1) % const.BUFFER_LEN
 
         # Every 1 second, take the averge of readings in the buffer
         # Set the shared variable to the result
         # If it reads the same value, add to the stablize counter
         if self.counter == 49:
-            sensor_val = np.mean(self.buffer) > 0.5 # might change to a different threshold
+            sensor_val = np.mean(self.buffer) > 0.5  # might change to a different threshold
             if SV.sensor_detected == sensor_val:
                 self.stablize_counter += 1
             SV.sensor_detected = sensor_val
@@ -70,7 +84,7 @@ class SensorHandler:
         # If GPIO input stablizes, reset everything and go back to waiting for
         # interrupts on rising/falling edge
         if self.stablize_counter > 20:
-            self.buffer = np.zeros(BUFFER_LEN)
+            self.buffer = np.zeros(const.BUFFER_LEN)
             self.counter = 0
             self.stablize_counter = 0
             self.init_interrupts()
@@ -84,22 +98,30 @@ class SensorHandler:
             self.t_poll_sensor = threading.Timer(0.005, self.read_sensor)
             self.t_poll_sensor.start()
 
-    def block(self):
-        print("Blocker coming up...")
-        GPIO.output(MOTOR1A, GPIO.HIGH)
-        GPIO.output(MOTOR1B, GPIO.LOW)
-        GPIO.output(MOTOR1E, GPIO.HIGH)
-        time.sleep(2)
+    # Returns True if there is no obstruction and false otherwise
+    def no_obstruction(self):
+        return GPIO.input(const.PIN_OBSTRUCTION_SENSOR)
 
-        GPIO.output(MOTOR1E, GPIO.LOW)
+    def block(self):
+        ''' Raises the blocker '''
+
+        print("Blocker coming up...")
+        GPIO.output(const.MOTOR1A, GPIO.HIGH)
+        GPIO.output(const.MOTOR1B, GPIO.LOW)
+        GPIO.output(const.MOTOR1E, GPIO.HIGH)
+        time.sleep(1)
+
+        GPIO.output(const.MOTOR1E, GPIO.LOW)
         print("Spot is now blocked")
 
     def lower(self):
-        print("Blocker lowering...")
-        GPIO.output(MOTOR1A, GPIO.LOW)
-        GPIO.output(MOTOR1B, GPIO.HIGH)
-        GPIO.output(MOTOR1E, GPIO.HIGH)
-        time.sleep(2)
+        ''' Lowers the blocker '''
 
-        GPIO.output(MOTOR1E, GPIO.LOW)
+        print("Blocker lowering...")
+        GPIO.output(const.MOTOR1A, GPIO.LOW)
+        GPIO.output(const.MOTOR1B, GPIO.HIGH)
+        GPIO.output(const.MOTOR1E, GPIO.HIGH)
+        time.sleep(1)
+
+        GPIO.output(const.MOTOR1E, GPIO.LOW)
         print("Blocker is now lowered")
