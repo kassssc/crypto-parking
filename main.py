@@ -12,10 +12,9 @@ Author(s): Kass Chupongstimun, kchupong@ucsd.edu
 from crypto_parking import CryptoParking
 
 def main():
-		''' main method of program '''
+    ''' main method of program '''
 
     print("Crypto Parking Lot")
-
     # instantiate application and start
     app = CryptoParking()
     app.start()
